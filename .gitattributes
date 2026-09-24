@@ -1,0 +1,8 @@
+# Arquivos que rodam no Linux precisam de LF, sempre.
+# Com CRLF o shebang quebra e o script nao executa na VPS.
+*.sh        text eol=lf
+*.yaml      text eol=lf
+*.yml       text eol=lf
+*.md        text eol=lf
+*.service   text eol=lf
+.env.example text eol=lf

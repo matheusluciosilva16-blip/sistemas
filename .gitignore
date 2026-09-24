@@ -1,0 +1,27 @@
+# ============================================================
+# NUNCA versionar segredos
+# ============================================================
+.env
+*.env
+!.env.example
+auth.json
+*token*.json
+*credentials*.json
+*.pem
+*.key
+id_*
+naia_vps*
+
+# Estado de execucao da VPS (gerado, nao e configuracao)
+gateway_state.json
+channel_directory.json
+processes.json
+models_dev_cache.json
+context_length_cache.yaml
+sessions/
+logs/
+*.log
+
+# Sistema
+Thumbs.db
+.DS_Store
