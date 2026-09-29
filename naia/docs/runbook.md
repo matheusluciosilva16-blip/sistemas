@@ -47,6 +47,10 @@ hermes auth reset openai-codex                                                  
 
 **Causa raiz (23/09/2026):** o contexto inchava até 110–129 mil tokens por chamada porque `compression.threshold` estava em 0.5. Ajustado para 0.25, junto com `reasoning_effort: medium`, `max_turns: 40`, `delegation.max_iterations: 25` e `max_concurrent_children: 3`.
 
+**Cota do Plus zerada com poucas mensagens (28/09/2026).** O painel do ChatGPT (Uso e limites) mostrou o limite de 5 horas em 0% e o semanal em 20% depois de só três mensagens no Telegram. O `gpt-6-astra` é multiagente: uma mensagem que usa ferramentas (Drive via Maton, por exemplo) vira dezenas de chamadas. Modelo trocado para `gpt-5.6-terra`, que gasta bem menos cota. Para voltar, basta trocar `model.default` em `hermes/config.yaml`.
+
+Confira a cota em chatgpt.com, em Configurações → Uso e limites, antes de suspeitar de credencial.
+
 ## Ela parou de guardar o que aprende
 
 Limite de memória cheio. Aparece só como WARNING:
@@ -88,3 +92,20 @@ ssh root@VPS "
   tail -10 /root/.hermes/logs/gateway.log
 "
 ```
+
+## O instalador sobrescreveu a Naia (27/09/2026)
+
+Rodar um instalador de novo na mesma VPS, com a ideia de criar uma segunda Naia, **não cria outra**: ele grava por cima de `/root/.hermes/` (`config.yaml`, `.env`, `SOUL.md`, `AGENTS.md`), e o serviço usa `--replace`, que derruba qualquer gateway em execução.
+
+Sintomas: o bot antigo parou de responder, a Naia passou a atender pelo bot novo e perdeu o acesso ao Google Drive.
+
+Causa: o `.env` foi recriado a partir do modelo. Perdeu o token do bot antigo e as chaves da Maton.
+
+Correção, feita editando `/root/.hermes/.env` na VPS (`nano /root/.hermes/.env`) e reiniciando o serviço:
+
+- `TELEGRAM_BOT_TOKEN` de volta ao token do bot antigo (@BotFather → `/mybots` → bot → API Token)
+- `MATON_API_KEY` e `MATON_AI_API_KEY`, as duas com a mesma chave do painel da Maton. As skills usam um nome ou o outro.
+
+O `.env` não tem backup automático. Depois de mexer nele, tire um snapshot da VPS no painel da Hostinger.
+
+Para ter duas Naias de verdade, cada uma precisa de `HERMES_HOME` e unidade systemd próprios.
