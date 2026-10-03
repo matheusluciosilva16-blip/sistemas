@@ -21,7 +21,7 @@ Configuração versionada da **Naia**, agente pessoal rodando em VPS e conversan
 ```
 VPS       Hostinger, Ubuntu 22.04, 8 GB RAM, 2 vCPU
 Runtime   Hermes Agent v0.15.1, tag v2026.5.29 (pin intencional)
-Modelo    gpt-6-astra via provider openai-codex (OAuth ChatGPT Plus)
+Modelo    gpt-5.6-terra via provider openai-codex (OAuth ChatGPT Plus)
 Canal     Telegram, polling
 Serviço   systemd user + loginctl enable-linger root
 ```
