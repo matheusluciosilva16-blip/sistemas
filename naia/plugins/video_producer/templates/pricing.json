@@ -1,0 +1,9 @@
+{
+  "_aviso": "Preços de referência. Veo: tabela oficial em ai.google.dev/gemini-api/docs/pricing, consultada em 04/10/2026. ElevenLabs depende do seu plano: preencha elevenlabs_usd_per_1k_chars.default.",
+  "veo_usd_per_second": {
+    "veo-3.1-fast-generate-preview": {"720p": 0.10, "1080p": 0.12, "4k": 0.30}
+  },
+  "elevenlabs_usd_per_1k_chars": {
+    "default": 0.0
+  }
+}

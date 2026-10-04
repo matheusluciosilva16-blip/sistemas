@@ -1,0 +1,11 @@
+{
+  "provider": "elevenlabs",
+  "voice_id": "",
+  "language": "pt-BR",
+  "style": "professional_warm_natural",
+  "model_id": null,
+  "stability": null,
+  "similarity_boost": null,
+  "style_exaggeration": null,
+  "use_speaker_boost": null
+}

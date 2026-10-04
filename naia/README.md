@@ -14,6 +14,7 @@ Configuração versionada da **Naia**, agente pessoal rodando em VPS e conversan
 | `hermes/.env.example` | Modelo do `.env` real, com placeholders |
 | `systemd/hermes-gateway.service` | Unidade systemd do gateway |
 | `scripts/instalar-naia.sh` | Instalação completa, etapas 1/2/3/5 |
+| `plugins/video_producer/` | Plugin do comando `/video` (Reels com roteiro, voz, cenas e FFmpeg) |
 | `docs/runbook.md` | Diagnóstico dos problemas que já aconteceram |
 
 ## Ambiente
@@ -58,7 +59,7 @@ A VPS busca este repositório **a cada 5 minutos** e aplica as mudanças sozinha
 scripts/naia-sync.sh  →  /usr/local/bin/naia-sync   (cron: */5 * * * *)
 ```
 
-**O que é sincronizado:** `config.yaml`, `SOUL.md`, `AGENTS.md` e a unidade systemd. O serviço só reinicia se algo realmente mudou.
+**O que é sincronizado:** `config.yaml`, `SOUL.md`, `AGENTS.md`, a unidade systemd, os plugins de `naia/plugins/` (para `/root/.hermes/plugins/`) e o próprio `naia-sync`. O serviço só reinicia se algo realmente mudou.
 
 ### A proteção que importa
 

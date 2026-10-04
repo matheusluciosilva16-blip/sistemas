@@ -1,0 +1,36 @@
+{
+  "aspect_ratio": "9:16",
+  "resolution": "1080x1920",
+  "fps": 30,
+  "primary_color": "#F2C94C",
+  "secondary_color": "#000000",
+  "background_color": "#FFFFFF",
+  "subtitle_position": "lower_center",
+  "logo_position": "top_right",
+  "music_volume_db": -24,
+  "voice_volume_db": -3,
+  "subtitle_style": "corporate_bold",
+  "video_style": "corporate_premium_realistic",
+  "subtitle": {
+    "font": "DejaVu Sans",
+    "font_size": 64,
+    "primary_color": "#FFFFFF",
+    "highlight_color": "#F2C94C",
+    "outline_color": "#000000",
+    "outline": 4,
+    "shadow": 2,
+    "margin_bottom": 260,
+    "max_chars_per_line": 26
+  },
+  "logo": {
+    "file": "logo.png",
+    "width_px": 180,
+    "margin_px": 48
+  },
+  "intro": "intro.mp4",
+  "outro": "outro.mp4",
+  "ai_disclosure": {
+    "enabled": true,
+    "text": "Personagem fictícia criada com IA"
+  }
+}
