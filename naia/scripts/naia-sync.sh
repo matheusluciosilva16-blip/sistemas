@@ -69,6 +69,31 @@ if [ -f "$UNIT" ] && ! cmp -s "$UNIT" "$DSTUNIT"; then
   log "aplicado: hermes-gateway.service"
 fi
 
+# --- 3b. plugins (naia/plugins/<nome> -> /root/.hermes/plugins/<nome>) --
+# Copia sem apagar nada no destino: arquivos colocados direto na VPS
+# (imagens da personagem, logo) sobrevivem. Backup em .tgz antes de copiar.
+PLUGSRC="$REPO/naia/plugins"
+PLUGDST=/root/.hermes/plugins
+PLUG_APPLIED=""
+if [ -d "$PLUGSRC" ]; then
+  mkdir -p "$PLUGDST"
+  for d in "$PLUGSRC"/*/; do
+    [ -f "$d/plugin.yaml" ] || continue
+    name=$(basename "$d")
+    NEWH=$(cd "$d" && find . -type f ! -path '*/__pycache__/*' -print0 | sort -z | xargs -0 md5sum | md5sum | cut -d" " -f1)
+    OLDH=$(cat "$STATE/plugin-$name.md5" 2>/dev/null)
+    [ "$NEWH" = "$OLDH" ] && continue
+    [ -d "$PLUGDST/$name" ] && tar -C "$PLUGDST" -czf "$BACKUP/plugin-$name.$STAMP.tgz" "$name"
+    ls -1t "$BACKUP/plugin-$name."*.tgz 2>/dev/null | tail -n +11 | xargs -r rm -f
+    mkdir -p "$PLUGDST/$name"
+    cp -a "$d". "$PLUGDST/$name/"
+    echo "$NEWH" > "$STATE/plugin-$name.md5"
+    PLUG_APPLIED="$PLUG_APPLIED $name"
+    CHANGED=1
+    log "aplicado: plugin $name"
+  done
+fi
+
 # --- 4. reiniciar so se algo mudou ---------------------------
 if [ "$CHANGED" = "1" ]; then
   export XDG_RUNTIME_DIR=/run/user/0
@@ -82,12 +107,32 @@ if [ "$CHANGED" = "1" ]; then
     for f in SOUL.md AGENTS.md config.yaml; do
       [ -f "$BACKUP/$f.$STAMP" ] && cp "$BACKUP/$f.$STAMP" "$DST/$f"
     done
+    for name in $PLUG_APPLIED; do
+      if [ -f "$BACKUP/plugin-$name.$STAMP.tgz" ]; then
+        rm -rf "$PLUGDST/$name" && tar -C "$PLUGDST" -xzf "$BACKUP/plugin-$name.$STAMP.tgz"
+      else
+        rm -rf "$PLUGDST/$name"
+      fi
+      # O md5 fica gravado: so tenta de novo quando o plugin mudar no repositorio.
+      log "plugin $name revertido; corrija no repositorio para tentar de novo"
+    done
     systemctl --user restart hermes-gateway.service 2>>"$LOG"
     sleep 8
     log "apos reversao: $(systemctl --user is-active hermes-gateway.service)"
   fi
 elif [ "$BEFORE" != "$AFTER" ]; then
   log "repositorio atualizado, nenhum arquivo aplicavel mudou"
+fi
+
+# --- 4b. o proprio sincronizador se atualiza (vale na proxima execucao) --
+SELF_SRC="$REPO/naia/scripts/naia-sync.sh"
+if [ -f "$SELF_SRC" ] && ! cmp -s "$SELF_SRC" /usr/local/bin/naia-sync; then
+  if bash -n "$SELF_SRC"; then
+    install -m 755 "$SELF_SRC" /usr/local/bin/naia-sync
+    log "naia-sync atualizado a partir do repositorio"
+  else
+    log "ERRO: naia-sync.sh do repositorio tem erro de sintaxe; mantive a versao atual"
+  fi
 fi
 
 # --- 5. snapshot do aprendizado dela -------------------------

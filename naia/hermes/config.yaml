@@ -569,3 +569,6 @@ platform_toolsets:
   google_chat:
   - hermes-google_chat
 mcp_servers: {}
+plugins:
+  enabled:
+  - video_producer

@@ -1,0 +1,26 @@
+{
+  "id": "maria_gabriela",
+  "name": "Maria Gabriela",
+  "age": 25,
+  "role": "secretaria_juridica",
+  "role_description": "secretária jurídica do escritório",
+  "language": "pt-BR",
+  "fictional": true,
+  "appearance": {
+    "nationality": "brasileira",
+    "skin": "morena",
+    "hair": "cabelos pretos lisos",
+    "look": "corporativa, realista, sem estética artificial",
+    "posture": "executiva, segura",
+    "prompt_description": "A 25-year-old Brazilian woman with tan skin and straight black hair, natural realistic look, no heavy makeup, executive posture, warm and confident expression"
+  },
+  "communication_style": {
+    "tone": "cordial, segura, clara",
+    "vocabulary": "linguagem simples, sem juridiquês; quando usar termo técnico, explica em seguida",
+    "pace": "natural, sem pressa"
+  },
+  "default_setting": "a modern, well-lit Brazilian law office reception with wooden details and soft warm light",
+  "default_outfit": "navy_corporate",
+  "voice_profile": "maria_gabriela",
+  "reference_images": []
+}
