@@ -57,6 +57,20 @@ Memory at 2,095/2,200 chars. Adding this entry would exceed the limit.
 
 Os padrões do pacote são apertados. Ajustados para `memory_char_limit: 10000` e `user_char_limit: 5000`.
 
+## Ela diz que mandou a imagem, mas nada chega no Telegram
+
+O gateway descarta em silêncio arquivos fora das pastas permitidas. Em `gateway/platforms/base.py` (tag `v2026.5.29`), `/root` inteiro está na lista de bloqueio, e a Naia roda como root, então qualquer imagem salva em `/root/...` cai fora. O texto da resposta já foi enviado antes, então ela "acha" que entregou. Só fica um WARNING no log:
+
+```bash
+ssh root@VPS "grep -E 'Skipping unsafe (MEDIA directive|local file) path|delivery failed' /root/.hermes/logs/gateway.log | tail -10"
+```
+
+Sempre liberadas, mesmo dentro de `/root`: `~/.hermes/cache/{images,documents,audio,video,screenshots}` (ou as antigas `image_cache`, `document_cache` etc., a que existir). A cache de imagens é limpa após 24 h, o que não atrapalha: serve só para a entrega.
+
+Correção sem afrouxar a segurança: ela copia o arquivo para `/root/.hermes/cache/images/` e responde com `MEDIA:/root/.hermes/cache/images/nome.png` em linha própria. Para mandar sem a recompressão do Telegram (foto cai para ~1280 px), acrescentar `[[as_document]]` na resposta.
+
+Se a imagem estiver na pasta certa e mesmo assim não chegar, o log mostra `image batch delivery failed` com o erro do Telegram (foto acima de 10 MB ou com dimensões fora do limite). Nesse caso, mandar como documento.
+
 ## Armadilhas da instalação
 
 - **`hermes login` não existe.** O comando é `hermes auth add <provider> --type oauth --no-browser --manual-paste`.
