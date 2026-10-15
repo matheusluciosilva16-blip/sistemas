@@ -2,9 +2,12 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { converter, aplicarRegras, lerData, isoBrasilia, lerDinheiro, lerTelefone, ErroDeDados } from '../src/lib/leads.js';
+import { configPadrao, montarConfig, paraIdentificador, chaveValida } from '../src/lib/config.js';
 
-const novo = (dados) => aplicarRegras({}, converter(dados));
-const muda = (atual, dados) => aplicarRegras(atual, converter(dados));
+const CFG = configPadrao();
+
+const novo = (dados, cfg = CFG) => aplicarRegras({}, converter(dados, cfg), cfg);
+const muda = (atual, dados, cfg = CFG) => aplicarRegras(atual, converter(dados, cfg, atual), cfg);
 
 test('datas sem fuso são horário de Brasília', () => {
   assert.equal(lerData('2026-10-15T09:30'), Date.parse('2026-10-15T12:30:00Z'));
@@ -28,8 +31,8 @@ test('telefone ganha DDI 55', () => {
 });
 
 test('campo desconhecido e valor fora da lista são recusados', () => {
-  assert.throws(() => converter({ detalhes_do_caso: 'x' }), /Campo desconhecido/);
-  assert.throws(() => converter({ area: 'tributario' }), /Aceitos/);
+  assert.throws(() => converter({ detalhes_do_caso: 'x' }, CFG), /Campo desconhecido/);
+  assert.throws(() => converter({ area: 'tributario' }, CFG), /Aceitos/);
 });
 
 test('lead precisa de nome ou telefone', () => {
@@ -78,4 +81,55 @@ test('atendimento antes da entrada é recusado', () => {
 
 test('entrada no futuro é recusada', () => {
   assert.throws(() => novo({ nome: 'A', entrada_em: Date.now() + 3600 * 1000 }), /futuro/);
+});
+
+// ---------- CRM configurável ----------
+
+function configCom() {
+  const base = configPadrao();
+  const opcoes = Object.entries(base.listas).flatMap(([campo, os]) => os.map((o) => ({ ...o, campo })));
+  // "outra" área desativada; campo personalizado de lista com uma opção desativada
+  opcoes.find((o) => o.campo === 'area' && o.valor === 'outra').ativo = 0;
+  opcoes.push({ campo: 'tipo_veiculo', valor: 'carro', rotulo: 'Carro', ordem: 0, ativo: 1 });
+  opcoes.push({ campo: 'tipo_veiculo', valor: 'moto', rotulo: 'Moto', ordem: 1, ativo: 0 });
+  return montarConfig(opcoes, [
+    { chave: 'tipo_veiculo', rotulo: 'Tipo de veículo', tipo: 'lista', secao: 'contato', na_lista: 1, ativo: 1 },
+    { chave: 'parcelas_atrasadas', rotulo: 'Parcelas atrasadas', tipo: 'numero', secao: 'andamento', na_lista: 0, ativo: 1 },
+    { chave: 'valor_bloqueado', rotulo: 'Valor bloqueado', tipo: 'dinheiro', secao: 'andamento', na_lista: 0, ativo: 1 },
+    { chave: 'antigo', rotulo: 'Campo antigo', tipo: 'texto', secao: 'andamento', na_lista: 0, ativo: 0 },
+  ]);
+}
+
+test('campos personalizados são aceitos soltos ou dentro de extras', () => {
+  const cfg = configCom();
+  const a = novo({ nome: 'A', tipo_veiculo: 'carro', extras: { parcelas_atrasadas: '3', valor_bloqueado: '1.250,00' } }, cfg);
+  assert.deepEqual(a.extras, { tipo_veiculo: 'carro', parcelas_atrasadas: 3, valor_bloqueado: 125000 });
+});
+
+test('campo personalizado desativado e opção desativada são recusados em lead novo', () => {
+  const cfg = configCom();
+  assert.throws(() => novo({ nome: 'A', antigo: 'x' }, cfg), /desativado/);
+  assert.throws(() => novo({ nome: 'A', tipo_veiculo: 'moto' }, cfg), /Aceitos: carro/);
+  assert.throws(() => novo({ nome: 'A', area: 'outra' }, cfg), /Valor inválido/);
+});
+
+test('lead que já tinha a opção desativada pode ser salvo sem perdê-la', () => {
+  const cfg = configCom();
+  const atual = { nome: 'A', entrada_em: 1, canal: 'whatsapp', area: 'outra', extras: { tipo_veiculo: 'moto' } };
+  const b = muda(atual, { area: 'outra', tipo_veiculo: 'moto', nome: 'B' }, cfg);
+  assert.equal(b.area, 'outra');
+  assert.equal(b.extras.tipo_veiculo, 'moto');
+});
+
+test('valor vazio apaga o campo personalizado; os outros continuam', () => {
+  const cfg = configCom();
+  const atual = { nome: 'A', entrada_em: 1, canal: 'whatsapp', extras: { tipo_veiculo: 'carro', parcelas_atrasadas: 2 } };
+  assert.deepEqual(muda(atual, { parcelas_atrasadas: '' }, cfg).extras, { tipo_veiculo: 'carro' });
+});
+
+test('identificador de campo novo', () => {
+  assert.equal(paraIdentificador('Área Previdenciária!'), 'area_previdenciaria');
+  assert.equal(chaveValida('tipo_veiculo'), true);
+  assert.equal(chaveValida('telefone'), false);
+  assert.equal(chaveValida('busca'), false);
 });

@@ -13,6 +13,7 @@ import equipe from './rotas/equipe.js';
 import chaves from './rotas/chaves.js';
 import api from './rotas/api.js';
 import leads from './rotas/leads.js';
+import configuracoes from './rotas/configuracoes.js';
 
 const app = new Hono();
 
@@ -79,6 +80,7 @@ app.get('/painel', async (c) => {
 });
 
 app.route('/', leads);
+app.route('/', configuracoes);
 app.route('/', equipe);
 app.route('/', chaves);
 

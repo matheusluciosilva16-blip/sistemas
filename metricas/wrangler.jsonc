@@ -5,6 +5,8 @@
   "main": "src/index.js",
   "compatibility_date": "2026-09-01",
   "observability": { "enabled": true },
+  // Fontes, logo e ícones (os mesmos arquivos das landing pages)
+  "assets": { "directory": "./public" },
   "d1_databases": [
     {
       "binding": "DB",

@@ -1,55 +1,13 @@
 // Regras do CRM: listas de opções, conversão de dados de entrada e validação.
 // Usado tanto pelas telas quanto pela API, para que as duas portas sigam as mesmas regras.
 
-// ---------- Listas fechadas ----------
-// Para acrescentar uma opção, basta incluí-la aqui. Não remova opções já usadas:
-// leads antigos continuariam com o valor, mas sem rótulo.
+import { ErroDeDados } from './erros.js';
+import { conferirOpcao, campoPersonalizado } from './config.js';
 
-export const OPCOES = {
-  canal: {
-    whatsapp: 'WhatsApp',
-    ligacao: 'Ligação',
-    formulario: 'Formulário',
-    presencial: 'Presencial',
-    outro: 'Outro',
-  },
-  plataforma: {
-    google: 'Google Ads',
-    meta: 'Meta Ads (Facebook/Instagram)',
-    organico: 'Orgânico (Google ou Instagram sem anúncio)',
-    indicacao: 'Indicação',
-    outra: 'Outra',
-  },
-  pagina: {
-    'busca-e-apreensao': 'Busca e apreensão',
-    'conta-bloqueada': 'Conta bloqueada',
-    criminal: 'Criminal',
-    entrada: 'Página de entrada',
-  },
-  area: {
-    busca_apreensao: 'Busca e apreensão de veículo',
-    conta_bloqueada: 'Conta bloqueada',
-    criminal: 'Criminal',
-    outra: 'Outra área',
-  },
-  motivo_desqualificacao: {
-    area_nao_atendida: 'Assunto que o escritório não atende',
-    fora_da_regiao: 'Fora da região atendida',
-    so_informacao: 'Só queria informação',
-    sem_condicao_financeira: 'Sem condição de contratar',
-    contato_invalido: 'Contato inválido ou engano',
-    duplicado: 'Lead duplicado',
-    outro: 'Outro',
-  },
-  motivo_perda: {
-    sem_resposta: 'Parou de responder',
-    honorarios: 'Achou os honorários altos',
-    outro_advogado: 'Contratou outro advogado',
-    desistiu: 'Desistiu de seguir',
-    resolveu_sozinho: 'Resolveu por conta própria',
-    outro: 'Outro',
-  },
-};
+export { ErroDeDados };
+
+// As listas de opções (canal, plataforma, área, motivos...) e os campos personalizados
+// vivem no banco e são editados em Configurações. Ver src/lib/config.js.
 
 export const ETAPAS = {
   novo: 'Novo',
@@ -144,8 +102,6 @@ export function telefoneLegivel(d) {
 
 // ---------- Validação ----------
 
-export class ErroDeDados extends Error {}
-
 const TEXTOS_LIVRES = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term', 'campanha', 'conjunto', 'anuncio', 'ref'];
 const DATAS = ['entrada_em', 'primeiro_atendimento_em', 'consulta_agendada_para', 'contrato_em', 'perdido_em'];
 const LISTAS = ['canal', 'plataforma', 'pagina', 'area', 'motivo_desqualificacao', 'motivo_perda'];
@@ -162,11 +118,49 @@ function lerSimNao(valor, campo) {
   throw new ErroDeDados(`"${campo}" aceita sim/não (true/false).`);
 }
 
-/** Converte os dados recebidos para o formato do banco. Só toca nos campos presentes. */
-export function converter(dados) {
+/** Converte o valor de um campo personalizado conforme o tipo dele. */
+function converterExtra(campo, valor, config, valorAtual) {
+  if (valor === null || valor === '' || valor === undefined) return null;
+  switch (campo.tipo) {
+    case 'texto': return String(valor).trim().slice(0, 200);
+    case 'numero': {
+      const n = Number(String(valor).replace(',', '.'));
+      if (!Number.isFinite(n)) throw new ErroDeDados(`"${campo.rotulo}" precisa ser um número.`);
+      return n;
+    }
+    case 'dinheiro': return lerDinheiro(valor);
+    case 'data': return lerData(valor);
+    case 'sim_nao': return lerSimNao(valor, campo.rotulo);
+    case 'lista':
+      conferirOpcao(config, campo.chave, String(valor), valorAtual, campo.rotulo);
+      return String(valor);
+    default: throw new ErroDeDados(`Tipo de campo desconhecido: ${campo.tipo}.`);
+  }
+}
+
+/**
+ * Converte os dados recebidos para o formato do banco. Só toca nos campos presentes.
+ * Campos personalizados podem vir soltos ({"tipo_veiculo": "moto"}) ou dentro de "extras".
+ * @param config  resultado de carregarConfig()
+ * @param atual   lead atual (para aceitar um valor de opção que foi desativada depois)
+ */
+export function converter(dados, config, atual = {}) {
   const saida = {};
-  for (const [campo, valor] of Object.entries(dados)) {
-    if (!CAMPOS_ACEITOS.includes(campo)) throw new ErroDeDados(`Campo desconhecido: "${campo}".`);
+  const extrasAtuais = atual.extras || {};
+  const entrada = { ...dados };
+  if (entrada.extras && typeof entrada.extras === 'object') {
+    Object.assign(entrada, entrada.extras);
+  }
+  delete entrada.extras;
+
+  for (const [campo, valor] of Object.entries(entrada)) {
+    if (!CAMPOS_ACEITOS.includes(campo)) {
+      const extra = campoPersonalizado(config, campo);
+      if (!extra) throw new ErroDeDados(`Campo desconhecido: "${campo}".`);
+      if (!extra.ativo) throw new ErroDeDados(`O campo "${extra.rotulo}" está desativado.`);
+      (saida.extras ??= {})[campo] = converterExtra(extra, valor, config, extrasAtuais[campo]);
+      continue;
+    }
     if (campo === 'nome') saida.nome = valor ? String(valor).trim().slice(0, 120) : null;
     else if (campo === 'telefone') saida.telefone = lerTelefone(valor);
     else if (campo === 'referencia_externa') saida.referencia_externa = valor ? String(valor).slice(0, 200) : null;
@@ -177,33 +171,41 @@ export function converter(dados) {
     else if (DINHEIRO.includes(campo)) saida[campo] = lerDinheiro(valor);
     else if (LISTAS.includes(campo)) {
       if (valor === null || valor === '' || valor === undefined) saida[campo] = null;
-      else if (!(valor in OPCOES[campo])) {
-        throw new ErroDeDados(`Valor inválido para "${campo}": "${valor}". Aceitos: ${Object.keys(OPCOES[campo]).join(', ')}.`);
-      } else saida[campo] = valor;
+      else {
+        conferirOpcao(config, campo, String(valor), atual[campo]);
+        saida[campo] = String(valor);
+      }
     }
   }
   return saida;
 }
 
 /** Plataforma deduzida da UTM, quando não informada. */
-function plataformaDaUtm(utmSource) {
+function plataformaDaUtm(utmSource, config) {
   const s = String(utmSource || '').toLowerCase();
-  if (/google|adwords|gads/.test(s)) return 'google';
-  if (/facebook|instagram|^fb$|^ig$|meta/.test(s)) return 'meta';
-  return null;
+  let p = null;
+  if (/google|adwords|gads/.test(s)) p = 'google';
+  else if (/facebook|instagram|^fb$|^ig$|meta/.test(s)) p = 'meta';
+  // Só usa se a opção existir e estiver ativa nas Configurações.
+  return config?.listas.plataforma?.some((o) => o.valor === p && o.ativo) ? p : null;
 }
 
 /**
  * Junta o estado atual com as mudanças, aplica as regras automáticas e confere a coerência.
  * Devolve o lead completo como ficará no banco.
  */
-export function aplicarRegras(atual, mudancas) {
+export function aplicarRegras(atual, mudancas, config) {
   const lead = { ...atual, ...mudancas };
+  // Campos personalizados: junta com os que o lead já tinha; valor vazio apaga a chave.
+  if (mudancas.extras) {
+    lead.extras = { ...(atual.extras || {}), ...mudancas.extras };
+    for (const [k, v] of Object.entries(lead.extras)) if (v === null) delete lead.extras[k];
+  }
 
   if (!lead.nome && !lead.telefone && !atual.anonimizado_em) throw new ErroDeDados('Informe ao menos o nome ou o telefone.');
   if (!lead.entrada_em) lead.entrada_em = Date.now();
   if (!lead.canal) lead.canal = 'whatsapp';
-  if (!lead.plataforma && lead.utm_source) lead.plataforma = plataformaDaUtm(lead.utm_source);
+  if (!lead.plataforma && lead.utm_source) lead.plataforma = plataformaDaUtm(lead.utm_source, config);
 
   // Regras automáticas, para a equipe não precisar marcar o óbvio:
   if ('qualificado' in mudancas) {
@@ -236,8 +238,21 @@ export function aplicarRegras(atual, mudancas) {
   return lead;
 }
 
+/** Campos personalizados no formato público: dinheiro em reais, data em ISO de Brasília. */
+function extrasParaApi(extras, config) {
+  const saida = {};
+  for (const [chave, valor] of Object.entries(extras || {})) {
+    const tipo = campoPersonalizado(config, chave)?.tipo;
+    if (tipo === 'dinheiro') saida[chave] = valor == null ? null : valor / 100;
+    else if (tipo === 'data') saida[chave] = isoBrasilia(valor);
+    else if (tipo === 'sim_nao') saida[chave] = valor == null ? null : valor === 1;
+    else saida[chave] = valor;
+  }
+  return saida;
+}
+
 /** Formato público do lead (API): datas em ISO de Brasília, dinheiro em reais. */
-export function paraApi(lead) {
+export function paraApi(lead, config) {
   const r = (v) => (v == null ? null : v / 100);
   const b = (v) => (v == null ? null : v === 1);
   return {
@@ -273,6 +288,7 @@ export function paraApi(lead) {
     referencia_externa: lead.referencia_externa,
     criado_em: isoBrasilia(lead.criado_em),
     atualizado_em: isoBrasilia(lead.atualizado_em),
+    extras: extrasParaApi(lead.extras, config),
     anonimizado: !!lead.anonimizado_em,
   };
 }

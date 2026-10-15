@@ -4,7 +4,8 @@
 
 import { Hono } from 'hono';
 import { exigirChave } from '../lib/permissoes.js';
-import { OPCOES, ETAPAS, FRASES_DO_SITE, ErroDeDados, paraApi, lerTelefone, lerData } from '../lib/leads.js';
+import { ETAPAS, FRASES_DO_SITE, ErroDeDados, paraApi, lerTelefone, lerData } from '../lib/leads.js';
+import { carregarConfig, LISTAS_DO_SISTEMA, TIPOS_DE_CAMPO, campoPersonalizado } from '../lib/config.js';
 import { criarLead, atualizarLead, buscarLead, listarLeads } from '../lib/repo-leads.js';
 
 const api = new Hono();
@@ -43,25 +44,57 @@ api.get('/status', exigirChave(), (c) => {
 });
 
 /** Valores aceitos em cada campo de lista. A agente pode consultar antes de gravar. */
-api.get('/opcoes', exigirChave(), (c) => c.json({ ...OPCOES, etapa: ETAPAS, frases_do_site: FRASES_DO_SITE }));
+api.get('/opcoes', exigirChave(), async (c) => {
+  const config = await carregarConfig(c.env.DB);
+  const ativas = (campo) => Object.fromEntries((config.listas[campo] || []).filter((o) => o.ativo).map((o) => [o.valor, o.rotulo]));
+  return c.json({
+    ...Object.fromEntries(Object.keys(LISTAS_DO_SISTEMA).map((campo) => [campo, ativas(campo)])),
+    etapa: ETAPAS,
+    frases_do_site: FRASES_DO_SITE,
+    plataforma_padrao: config.ajustes.plataforma_padrao || null,
+    campos_personalizados: config.campos
+      .filter((cp) => cp.ativo)
+      .map((cp) => ({
+        chave: cp.chave,
+        rotulo: cp.rotulo,
+        tipo: cp.tipo,
+        tipo_descricao: TIPOS_DE_CAMPO[cp.tipo],
+        ...(cp.tipo === 'lista' ? { opcoes: ativas(cp.chave) } : {}),
+      })),
+  });
+});
 
 /** Cria um lead. Se ele já existir (mesma referência ou mesmo telefone em 90 dias), devolve o existente. */
 api.post('/leads', exigirChave('leads:escrever'), async (c) => {
   const { mensagem_inicial, ...dados } = await corpoJson(c);
+  const config = await carregarConfig(c.env.DB);
   const origem = origemPelaMensagem(mensagem_inicial);
   if (origem) {
     dados.pagina ??= origem.pagina;
     if (origem.area) dados.area ??= origem.area;
+    // Página de campanha + plataforma não informada → plataforma padrão das Configurações.
+    const padrao = config.ajustes.plataforma_padrao;
+    const padraoAtivo = config.listas.plataforma?.some((o) => o.valor === padrao && o.ativo);
+    if (origem.pagina !== 'entrada' && !dados.plataforma && !dados.utm_source && padraoAtivo) {
+      dados.plataforma = padrao;
+    }
   }
-  const { lead, jaExistia } = await criarLead(c.env.DB, dados, ator(c));
-  return c.json({ ja_existia: jaExistia, origem_identificada: origem?.pagina ?? null, lead: paraApi(lead) }, jaExistia ? 200 : 201);
+  const { lead, jaExistia } = await criarLead(c.env.DB, dados, ator(c), config);
+  return c.json({ ja_existia: jaExistia, origem_identificada: origem?.pagina ?? null, lead: paraApi(lead, config) }, jaExistia ? 200 : 201);
 });
 
 /** Lista leads. Filtros: telefone, etapa, area, plataforma, desde, ate, busca, pagina, por_pagina. */
 api.get('/leads', exigirChave('leads:ler'), async (c) => {
   const q = c.req.query();
   if (q.etapa && !(q.etapa in ETAPAS)) throw new ErroDeDados(`Etapa inválida. Aceitas: ${Object.keys(ETAPAS).join(', ')}.`);
+  const config = await carregarConfig(c.env.DB);
+  // Qualquer outro parâmetro com nome de campo personalizado vira filtro. Ex.: ?tipo_veiculo=moto
+  const extras = {};
+  for (const [chave, valor] of Object.entries(q)) {
+    if (campoPersonalizado(config, chave)) extras[chave] = valor;
+  }
   const r = await listarLeads(c.env.DB, {
+    extras,
     etapa: q.etapa,
     area: q.area,
     plataforma: q.plataforma,
@@ -72,21 +105,22 @@ api.get('/leads', exigirChave('leads:ler'), async (c) => {
     pagina: q.pagina,
     porPagina: q.por_pagina,
   });
-  return c.json({ total: r.total, pagina: r.pagina, por_pagina: r.porPagina, leads: r.leads.map(paraApi) });
+  return c.json({ total: r.total, pagina: r.pagina, por_pagina: r.porPagina, leads: r.leads.map((l) => paraApi(l, config)) });
 });
 
 api.get('/leads/:id{[0-9]+}', exigirChave('leads:ler'), async (c) => {
   const lead = await buscarLead(c.env.DB, Number(c.req.param('id')));
   if (!lead) return c.json({ erro: 'nao_encontrado', mensagem: 'Lead não encontrado.' }, 404);
-  return c.json({ lead: paraApi(lead) });
+  return c.json({ lead: paraApi(lead, await carregarConfig(c.env.DB)) });
 });
 
 /** Atualiza só os campos enviados. Ex.: {"primeiro_atendimento_em": "agora"} */
 api.patch('/leads/:id{[0-9]+}', exigirChave('leads:escrever'), async (c) => {
   const dados = await corpoJson(c);
-  const lead = await atualizarLead(c.env.DB, Number(c.req.param('id')), dados, ator(c));
+  const config = await carregarConfig(c.env.DB);
+  const lead = await atualizarLead(c.env.DB, Number(c.req.param('id')), dados, ator(c), config);
   if (!lead) return c.json({ erro: 'nao_encontrado', mensagem: 'Lead não encontrado.' }, 404);
-  return c.json({ lead: paraApi(lead) });
+  return c.json({ lead: paraApi(lead, config) });
 });
 
 export default api;
