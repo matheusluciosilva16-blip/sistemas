@@ -5,7 +5,7 @@
 import { Hono } from 'hono';
 import { exigirChave } from '../lib/permissoes.js';
 import { ETAPAS, FRASES_DO_SITE, ErroDeDados, paraApi, lerTelefone, lerData } from '../lib/leads.js';
-import { carregarConfig, LISTAS_DO_SISTEMA, TIPOS_DE_CAMPO, campoPersonalizado } from '../lib/config.js';
+import { carregarConfig, LISTAS_DO_SISTEMA, TIPOS_DE_CAMPO, campoPersonalizado, plataformaDaPagina } from '../lib/config.js';
 import { criarLead, atualizarLead, buscarLead, listarLeads } from '../lib/repo-leads.js';
 
 const api = new Hono();
@@ -51,7 +51,7 @@ api.get('/opcoes', exigirChave(), async (c) => {
     ...Object.fromEntries(Object.keys(LISTAS_DO_SISTEMA).map((campo) => [campo, ativas(campo)])),
     etapa: ETAPAS,
     frases_do_site: FRASES_DO_SITE,
-    plataforma_padrao: config.ajustes.plataforma_padrao || null,
+    plataforma_por_pagina: Object.fromEntries((config.listas.pagina || []).map((o) => [o.valor, plataformaDaPagina(config, o.valor)])),
     campos_personalizados: config.campos
       .filter((cp) => cp.ativo)
       .map((cp) => ({
@@ -72,12 +72,9 @@ api.post('/leads', exigirChave('leads:escrever'), async (c) => {
   if (origem) {
     dados.pagina ??= origem.pagina;
     if (origem.area) dados.area ??= origem.area;
-    // Página de campanha + plataforma não informada → plataforma padrão das Configurações.
-    const padrao = config.ajustes.plataforma_padrao;
-    const padraoAtivo = config.listas.plataforma?.some((o) => o.valor === padrao && o.ativo);
-    if (origem.pagina !== 'entrada' && !dados.plataforma && !dados.utm_source && padraoAtivo) {
-      dados.plataforma = padrao;
-    }
+    // Plataforma não informada → a plataforma que anuncia aquela página (Configurações).
+    const padrao = plataformaDaPagina(config, dados.pagina);
+    if (!dados.plataforma && !dados.utm_source && padrao) dados.plataforma = padrao;
   }
   const { lead, jaExistia } = await criarLead(c.env.DB, dados, ator(c), config);
   return c.json({ ja_existia: jaExistia, origem_identificada: origem?.pagina ?? null, lead: paraApi(lead, config) }, jaExistia ? 200 : 201);

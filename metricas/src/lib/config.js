@@ -1,7 +1,7 @@
 // Configuração do CRM editável pelo painel (Configurações):
 //  - listas de classificação (canal, plataforma, área, motivos...): acrescentar, renomear, desativar;
 //  - campos personalizados: "colunas" novas no lead, de qualquer tipo, inclusive listas próprias;
-//  - ajustes gerais (ex.: plataforma padrão dos leads que chegam pelas páginas de campanha).
+//  - ajustes gerais (ex.: qual plataforma anuncia cada página do site).
 //
 // Opções nunca são apagadas, só desativadas: leads antigos continuam com o valor e o rótulo,
 // e as métricas do passado não mudam.
@@ -60,14 +60,18 @@ export const TIPOS_DE_CAMPO = {
 
 export const SECOES = { contato: 'Contato', origem: 'Origem', andamento: 'Andamento', desfecho: 'Desfecho' };
 
-export const AJUSTES = {
-  plataforma_padrao: {
-    rotulo: 'Plataforma dos leads que chegam pelas páginas de campanha',
-    ajuda:
-      'Quando a mensagem do WhatsApp é a frase de uma página de campanha e a plataforma não foi informada, ' +
-      'o lead recebe esta plataforma. Use enquanto anunciar em uma plataforma só. Deixe vazio quando anunciar em mais de uma.',
-  },
-};
+// Plataforma de cada página de campanha, para os leads que chegam pela frase do WhatsApp sem
+// plataforma informada. Guardada em ajustes como "plataforma_padrao:<página>".
+export const AJUDA_PLATAFORMA_POR_PAGINA =
+  'A mensagem do WhatsApp diz de qual página o lead veio, não de qual anúncio. Se cada plataforma anuncia ' +
+  'uma página diferente, informe aqui e o lead já entra com a plataforma certa. Se duas plataformas ' +
+  'anunciarem a mesma página, deixe "Não se sabe" nessa página.';
+
+/** Plataforma padrão da página, se houver e se a opção estiver ativa. */
+export function plataformaDaPagina(config, pagina) {
+  const p = config.ajustes[`plataforma_padrao:${pagina}`];
+  return p && (config.listas.plataforma || []).some((o) => o.valor === p && o.ativo) ? p : null;
+}
 
 // Nomes que não podem virar campo personalizado (já existem ou são reservados).
 const RESERVADOS = new Set([

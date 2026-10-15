@@ -84,7 +84,7 @@ app.get('/painel', async (c) => {
           <ol>
             <li>Base: login, equipe e chaves de API ✓</li>
             <li>CRM configurável e API para a Naia ✓</li>
-            <li>Importação de CSV do Meta Ads ✓ <span class="fraco">(Google Ads quando a campanha começar)</span></li>
+            <li>Importação de CSV do Meta Ads e do Google Ads ✓</li>
             <li>Métricas, funil e painel ✓</li>
             <li>Diagnóstico automático</li>
             <li>Coleta automática pelas APIs</li>

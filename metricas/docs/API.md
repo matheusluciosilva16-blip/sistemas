@@ -58,10 +58,10 @@ ela não é gravada. A resposta diz o que foi reconhecido:
 | Preciso de orientação sobre uma situação criminal urgente | `criminal` | `criminal` |
 | Gostaria de orientação jurídica | `entrada` | *(não define)* |
 
-**Plataforma:** quando a frase é de uma página de campanha e você não informa `plataforma`,
-o CRM usa a **plataforma padrão** das Configurações (hoje: `meta`, porque só há campanha no
-Meta). Se souber a plataforma de verdade (a pessoa contou), informe; o valor enviado sempre
-prevalece. `GET /opcoes` mostra a plataforma padrão em vigor.
+**Plataforma:** cada página do site é anunciada por uma plataforma (busca e apreensão no Meta,
+a outra campanha no Google Ads). Quando você não informa `plataforma`, o CRM usa a plataforma da
+página, definida em Configurações. Se souber a plataforma de verdade (a pessoa contou), informe:
+o valor enviado sempre prevalece. `GET /opcoes → plataforma_por_pagina` mostra o que está em vigor.
 
 ### 2. A equipe respondeu pela primeira vez
 
@@ -140,7 +140,7 @@ lead novo.
 | Método e rota | Permissão | O que faz |
 |---|---|---|
 | `GET /status` | qualquer chave | Testa a chave |
-| `GET /opcoes` | qualquer chave | Valores aceitos em cada lista, campos personalizados, etapas, frases do site e plataforma padrão |
+| `GET /opcoes` | qualquer chave | Valores aceitos em cada lista, campos personalizados, etapas, frases do site e plataforma de cada página |
 | `POST /leads` | `leads:escrever` | Cria (ou devolve o existente) |
 | `PATCH /leads/{id}` | `leads:escrever` | Altera só os campos enviados |
 | `GET /leads/{id}` | `leads:ler` | Um lead |

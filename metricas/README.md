@@ -13,7 +13,7 @@ senha. A Naia (e qualquer outra integração) alimenta o CRM por **chave de API*
 |---|---|---|
 | 1 | Base: login, equipe e chaves de API | ✅ pronta |
 | 2 | CRM configurável: registro de leads, listas e campos editáveis, API para a Naia | ✅ pronta |
-| 3 | Importação de CSV do Meta Ads | ✅ pronta (Google Ads quando houver campanha lá) |
+| 3 | Importação de CSV do Meta Ads e do Google Ads | ✅ pronta |
 | 4 | Métricas: CAC, ROAS, funil, evolução diária, tabelas por campanha, página e classificação | ✅ pronta |
 | 5 | Diagnóstico automático | a fazer |
 | 6 | Coleta automática pelas APIs (Meta, depois Google) | a fazer |
@@ -123,13 +123,17 @@ Pronto. A tela de primeiro acesso deixa de existir assim que a sua conta é cria
    *lista*, com as opções Carro, Moto e Caminhão, marcando "Mostrar na lista de leads". O campo
    aparece no cadastro, vira coluna e filtro na lista de leads, e um recorte em Métricas. A
    Naia passa a poder preenchê-lo pela API com o código mostrado na tela (`tipo_de_veiculo`).
-4. **Ajustes:** a plataforma padrão está em **Meta Ads**, porque por enquanto só há campanha
-   no Meta. Quando o Google Ads começar, troque para "Nenhuma".
+4. **Qual plataforma anuncia cada página:** busca e apreensão já vem com **Meta Ads**. Marque a
+   página da campanha do Google com **Google Ads**. Assim, o lead que chega pela frase daquela
+   página já entra com a plataforma certa. Se um dia duas plataformas anunciarem a mesma página,
+   deixe essa página em "Não se sabe".
 
 ## Como testar as métricas
 
-1. **Métricas → Importar CSV do Meta.** O passo a passo da exportação está na própria tela.
-   Importe o mês inteiro. Importar de novo **substitui** os dias do arquivo, então não duplica.
+1. **Métricas → Importar CSV.** Serve para o Meta e para o Google Ads: o sistema reconhece
+   sozinho de qual plataforma é o arquivo. O passo a passo de cada uma está na própria tela.
+   Importe o mês inteiro. Importar de novo **substitui** os dias do arquivo daquela plataforma,
+   então não duplica.
 2. **Métricas → Campanhas → páginas.** Diga qual página do site cada campanha anuncia. O
    sistema já sugere pelo nome da campanha; confira e salve. É isso que liga o investimento aos
    leads do CRM, porque a mensagem do WhatsApp identifica a página, e não a campanha.

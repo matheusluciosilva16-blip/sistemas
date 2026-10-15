@@ -189,15 +189,22 @@ export async function avisos(db, f) {
         LEFT JOIN campanhas_paginas cp ON cp.plataforma = a.plataforma AND cp.campanha = a.campanha
         WHERE a.data BETWEEN ? AND ? AND cp.campanha IS NULL`
     ).bind(f.desde, f.ate),
-    db.prepare('SELECT MAX(data_fim) AS ate FROM importacoes'),
+    db.prepare('SELECT plataforma, MAX(data_fim) AS ate FROM importacoes GROUP BY plataforma'),
   ]);
   const n1 = semPlataforma.results[0].n;
   if (n1) lista.push(`${n1} lead(s) do período estão sem plataforma ("não se sabe") e ficaram fora do CAC.`);
   const n2 = semPagina.results[0].n;
   if (n2) lista.push(`${n2} campanha(s) ainda não estão associadas a uma página do site. Associe em "Campanhas" para o recorte por página funcionar.`);
-  const ultima = ultimaImportacao.results[0].ate;
-  if (!ultima) lista.push('Nenhum dado de anúncio importado ainda. Importe o CSV do Meta em "Importar".');
-  else if (ultima < f.ate) lista.push(`Os dados de anúncio vão só até ${ultima.split('-').reverse().join('/')}. Os leads depois disso não têm investimento correspondente.`);
+  // Até quando cada plataforma tem dados importados
+  const importadas = ultimaImportacao.results.filter((r) => !f.plataforma || r.plataforma === f.plataforma);
+  const nome = { meta: 'Meta', google: 'Google Ads' };
+  if (!importadas.length) lista.push('Nenhum dado de anúncio importado ainda. Importe o CSV do Meta ou do Google Ads em "Importar CSV".');
+  // Agrupa as plataformas atrasadas pela data, para não repetir o mesmo aviso
+  const porData = {};
+  for (const r of importadas) if (r.ate < f.ate) (porData[r.ate] ??= []).push(nome[r.plataforma] || r.plataforma);
+  for (const [ate, plataformas] of Object.entries(porData)) {
+    lista.push(`Os dados do ${plataformas.join(' e do ')} vão só até ${ate.split('-').reverse().join('/')}. Os leads depois disso não têm investimento correspondente.`);
+  }
   return lista;
 }
 

@@ -8,7 +8,7 @@ import { reais, ErroDeDados } from '../lib/leads.js';
 import { carregarConfig, opcoesParaSelecao, rotulo, LISTAS_DO_SISTEMA } from '../lib/config.js';
 import { exigirAdmin } from '../lib/permissoes.js';
 import { auditar } from '../lib/acesso.js';
-import { importarMeta } from '../lib/importar-csv.js';
+import { importarCsv, decodificar } from '../lib/importar-csv.js';
 import { graficoColunas } from '../lib/grafico.js';
 import {
   resolverPeriodo, PERIODOS, calcular, avisos, serieDiaria, porNivel, porPagina, porLista, COLUNAS_LISTA,
@@ -118,7 +118,7 @@ function todasAsMetricas(m) {
     ['2. Atenção (vídeo)', [['Hook rate (3 s ÷ impressões)', pct(m.hook_rate)], ['Hold rate (ThruPlay ou 50% ÷ 3 s)', pct(m.hold_rate)],
       ['Retenção 25%', pct(m.retencao_25)], ['Retenção 50%', pct(m.retencao_50)], ['Retenção 75%', pct(m.retencao_75)], ['Retenção 100%', pct(m.retencao_100)]]],
     ['3. Clique', [['Cliques no link', num(m.cliques_link)], ['CTR de link', pct(m.ctr, 2)], ['CPC', dinheiro(m.cpc)],
-      ['Visualizações da página', num(m.lp_views)], ['Taxa de carregamento', pct(m.taxa_carregamento)], ['Conversas iniciadas (Meta)', num(m.conversas)]]],
+      ['Visualizações da página', num(m.lp_views)], ['Taxa de carregamento', pct(m.taxa_carregamento)], ['Conversões da plataforma (conversas no Meta, conversões no Google)', num(m.conversas)]]],
     ['4. Conversão', [['Leads (CRM)', num(m.leads)], [`Taxa de conversão (leads ÷ ${m.conversao_base})`, pct(m.taxa_conversao)], ['CPL', dinheiro(m.cpl)]]],
     ['5. Qualidade e vendas', [['Taxa de qualificação', pct(m.taxa_qualificacao)], ['Custo por lead qualificado', dinheiro(m.custo_lead_qualificado)],
       ['Taxa de agendamento', pct(m.taxa_agendamento)], ['Taxa de comparecimento', pct(m.taxa_comparecimento)], ['Taxa de fechamento', pct(m.taxa_fechamento)],
@@ -157,22 +157,22 @@ function tabelaNiveis(linhas, q, nivel, config) {
     <div class="card tabela"><table>
       <thead><tr><th>${niveis[nivel]}</th><th>${linkOrdem(q, 'investimento', 'Invest.', ordem)}</th><th>${linkOrdem(q, 'impressoes', 'Impr.', ordem)}</th>
         <th>${linkOrdem(q, 'cpm', 'CPM', ordem)}</th><th>${linkOrdem(q, 'ctr', 'CTR', ordem)}</th><th>${linkOrdem(q, 'cpc', 'CPC', ordem)}</th>
-        <th>${linkOrdem(q, 'hook_rate', 'Hook', ordem)}</th><th>Carreg.</th><th>${linkOrdem(q, 'conversas', 'Conversas', ordem)}</th></tr></thead>
+        <th>${linkOrdem(q, 'hook_rate', 'Hook', ordem)}</th><th>Carreg.</th><th>${linkOrdem(q, 'conversas', 'Conv.', ordem)}</th></tr></thead>
       <tbody>${
         ordenadas.length
           ? ordenadas.map(
               (l) => html`<tr>
                 <td><strong style="color:var(--ink)">${l[nivel] || l.campanha || '(sem nome)'}</strong>
                   ${nivel !== 'campanha' ? html`<br><span class="fraco">${[l.campanha, nivel === 'anuncio' ? l.conjunto : null].filter(Boolean).join(' › ')}</span>` : ''}
-                  ${nivel === 'campanha' ? html`<br><span class="fraco">${l.pagina ? `Página: ${rotulo(config, 'pagina', l.pagina)}` : 'Sem página associada'}</span>` : ''}</td>
+                  <br><span class="fraco">${rotulo(config, 'plataforma', l.plataforma)}${nivel === 'campanha' ? ` · ${l.pagina ? `Página: ${rotulo(config, 'pagina', l.pagina)}` : 'sem página associada'}` : ''}</span></td>
                 <td data-r="Investimento">${dinheiro(l.m.investimento)}</td><td data-r="Impressões">${num(l.m.impressoes)}</td>
                 <td data-r="CPM">${marca(dinheiro(l.m.cpm), alerta(l.m.cpm, mediaCpm, 'alto'))}</td>
                 <td data-r="CTR">${marca(pct(l.m.ctr, 2), alerta(l.m.ctr, mediaCtr, 'baixo'))}</td>
                 <td data-r="CPC">${dinheiro(l.m.cpc)}</td><td data-r="Hook rate">${pct(l.m.hook_rate)}</td>
-                <td data-r="Carregamento">${pct(l.m.taxa_carregamento)}</td><td data-r="Conversas">${num(l.m.conversas)}</td>
+                <td data-r="Carregamento">${pct(l.m.taxa_carregamento)}</td><td data-r="Conversões">${num(l.m.conversas)}</td>
               </tr>`
             )
-          : html`<tr><td colspan="9" class="fraco">Sem dados de anúncio no período. Importe o CSV do Meta.</td></tr>`
+          : html`<tr><td colspan="9" class="fraco">Sem dados de anúncio no período. Importe o CSV do Meta ou do Google Ads.</td></tr>`
       }</tbody></table></div>
     <p class="fraco">⚠ marca CTR 30% abaixo ou CPM 30% acima da média das linhas desta tabela.</p>`;
 }
@@ -228,7 +228,7 @@ rotas.get('/metricas', async (c) => {
       conteudo: html`
         <span class="eyebrow">Tráfego pago</span>
         <h1>Métricas</h1>
-        ${admin ? html`<p><a class="botao sec mini" href="/metricas/importar">Importar CSV do Meta</a>
+        ${admin ? html`<p><a class="botao sec mini" href="/metricas/importar">Importar CSV</a>
           <a class="botao sec mini" href="/metricas/campanhas" style="margin-left:8px">Campanhas → páginas</a></p>` : ''}
         ${formularioFiltros(q, f, config)}
         <p class="fraco">${dataBr(f.desde)} a ${dataBr(f.ate)} (${f.dias} dias) · comparado com ${dataBr(f.anterior.desde)} a ${dataBr(f.anterior.ate)}</p>
@@ -284,43 +284,59 @@ async function telaImportar(c, { erro = '', resultado = null } = {}) {
     atual: '/metricas',
     conteudo: html`
       <p><a href="/metricas">← Métricas</a></p>
-      <span class="eyebrow">Meta Ads</span>
+      <span class="eyebrow">Meta Ads e Google Ads</span>
       <h1>Importar CSV</h1>
       ${erro ? html`<div class="aviso erro" role="alert">${erro}</div>` : ''}
       ${resultado
-        ? html`<div class="aviso ok" role="status"><strong>${num(resultado.linhas)} linhas importadas</strong>, de ${dataBr(resultado.dataInicio)} a ${dataBr(resultado.dataFim)}
-            (nível de ${resultado.nivel}).</div>
+        ? html`<div class="aviso ok" role="status"><strong>${resultado.plataforma === 'meta' ? 'Meta' : 'Google Ads'}: ${num(resultado.linhas)} linhas importadas</strong>,
+            de ${dataBr(resultado.dataInicio)} a ${dataBr(resultado.dataFim)} (nível de ${resultado.nivel}).</div>
           ${resultado.avisos.map((a) => html`<div class="aviso ouro">${a}</div>`)}
           ${resultado.campanhasNovas ? html`<div class="aviso ouro">${resultado.campanhasNovas} campanha(s) nova(s).
             <a href="/metricas/campanhas">Associe cada uma à página do site</a> para o CPL e o CAC por página funcionarem.</div>` : ''}`
         : ''}
       <form method="post" action="/metricas/importar" enctype="multipart/form-data" class="card">
-        <label for="arquivo">Arquivo CSV exportado do Gerenciador de Anúncios</label>
+        <label for="arquivo">Arquivo CSV do Meta ou do Google Ads</label>
         <input id="arquivo" name="arquivo" type="file" accept=".csv,text/csv" required>
+        <p class="fraco">O sistema reconhece sozinho de qual plataforma é o arquivo.</p>
         <button class="botao" type="submit">Importar</button>
       </form>
-      <div class="card">
-        <h3>Como exportar do Meta</h3>
-        <ol>
-          <li>No <strong>Gerenciador de Anúncios</strong>, abra a aba <strong>Anúncios</strong> (para ver cada anúncio).</li>
-          <li>Escolha o período. Não filtre campanhas: exporte <strong>todas</strong>.</li>
-          <li><strong>Detalhamento → Por tempo → Dia.</strong></li>
-          <li>Em <strong>Colunas</strong>, inclua: Valor usado, Impressões, Alcance, Cliques no link, Visualizações da página de destino,
-            Reproduções de vídeo de 3 segundos, Reproduções de vídeo em 25%, 50%, 75% e 100%, ThruPlays e, se usar anúncio de WhatsApp,
-            Conversas por mensagem iniciadas. Salve essa seleção como predefinição para as próximas vezes.</li>
-          <li><strong>Relatórios → Exportar dados da tabela → .csv</strong>.</li>
-        </ol>
-        <p class="fraco">Importar de novo um período <strong>substitui</strong> os dados daqueles dias. Pode importar sempre o mês
-        inteiro, sem medo de duplicar.</p>
+      <div class="grade" style="grid-template-columns:repeat(auto-fit,minmax(300px,1fr))">
+        <div class="card">
+          <h3>Como exportar do Meta</h3>
+          <ol>
+            <li>No <strong>Gerenciador de Anúncios</strong>, abra a aba <strong>Anúncios</strong> (para ver cada anúncio).</li>
+            <li>Escolha o período. Não filtre campanhas: exporte <strong>todas</strong>.</li>
+            <li><strong>Detalhamento → Por tempo → Dia.</strong></li>
+            <li>Em <strong>Colunas</strong>, inclua: Valor usado, Impressões, Alcance, Cliques no link, Visualizações da página de destino,
+              Reproduções de vídeo de 3 segundos, Reproduções de vídeo em 25%, 50%, 75% e 100%, ThruPlays e, se usar anúncio de WhatsApp,
+              Conversas por mensagem iniciadas. Salve essa seleção como predefinição.</li>
+            <li><strong>Relatórios → Exportar dados da tabela → .csv</strong>.</li>
+          </ol>
+        </div>
+        <div class="card">
+          <h3>Como exportar do Google Ads</h3>
+          <ol>
+            <li>No Google Ads, abra <strong>Campanhas → Anúncios</strong> (ou Grupos de anúncios) e escolha o período.
+              Não filtre campanhas: exporte <strong>todas</strong>.</li>
+            <li>No ícone de <strong>Segmentar</strong>, escolha <strong>Tempo → Dia</strong>.</li>
+            <li>Em <strong>Colunas</strong>, deixe ao menos: Custo, Impr., Cliques e Conversões.</li>
+            <li>Ícone de <strong>Baixar → .csv</strong>.</li>
+          </ol>
+          <p class="fraco">O Google não informa visualizações da página nem métricas de vídeo nesse relatório. Para ele, a taxa
+          de conversão é calculada sobre os cliques.</p>
+        </div>
       </div>
+      <p class="fraco">Importar de novo um período <strong>substitui</strong> os dados daqueles dias, daquela plataforma.
+      Pode importar sempre o mês inteiro, sem medo de duplicar.</p>
       <h2>Importações anteriores</h2>
       <div class="card tabela"><table>
-        <thead><tr><th>Quando</th><th>Arquivo</th><th>Período</th><th>Linhas</th></tr></thead>
+        <thead><tr><th>Quando</th><th>Plataforma</th><th>Arquivo</th><th>Período</th><th>Linhas</th></tr></thead>
         <tbody>${
           historico.length
-            ? historico.map((i) => html`<tr><td>${dataHora(i.criado_em)}<br><span class="fraco">${i.autor || ''}</span></td><td>${i.arquivo}</td>
+            ? historico.map((i) => html`<tr><td>${dataHora(i.criado_em)}<br><span class="fraco">${i.autor || ''}</span></td>
+                <td data-r="Plataforma">${i.plataforma === 'meta' ? 'Meta' : 'Google Ads'}</td><td data-r="Arquivo">${i.arquivo}</td>
                 <td>${i.data_inicio ? `${dataBr(i.data_inicio)} a ${dataBr(i.data_fim)}` : traco}</td><td>${num(i.linhas)}</td></tr>`)
-            : html`<tr><td colspan="4" class="fraco">Nenhuma importação ainda.</td></tr>`
+            : html`<tr><td colspan="5" class="fraco">Nenhuma importação ainda.</td></tr>`
         }</tbody></table></div>`,
   });
 }
@@ -340,7 +356,7 @@ rotas.post('/metricas/importar', exigirAdmin, async (c) => {
 
   let r;
   try {
-    r = importarMeta(await arquivo.text());
+    r = importarCsv(decodificar(await arquivo.arrayBuffer()));
   } catch (e) {
     if (!(e instanceof ErroDeDados)) throw e;
     return c.html(await telaImportar(c, { erro: e.message }), 422);
@@ -350,13 +366,13 @@ rotas.post('/metricas/importar', exigirAdmin, async (c) => {
   const eu = c.get('usuario');
   const { meta } = await db
     .prepare('INSERT INTO importacoes (plataforma, arquivo, linhas, data_inicio, data_fim, avisos, criado_por, criado_em) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
-    .bind('meta', String(arquivo.name).slice(0, 200), r.linhas.length, r.dataInicio, r.dataFim, r.avisos.join('\n') || null, eu.id, Date.now())
+    .bind(r.plataforma, String(arquivo.name).slice(0, 200), r.linhas.length, r.dataInicio, r.dataFim, r.avisos.join('\n') || null, eu.id, Date.now())
     .run();
   const importacao = meta.last_row_id;
 
   // Os dias presentes no arquivo são substituídos por inteiro: reimportar não duplica.
   const dias = [...new Set(r.linhas.map((l) => l.data))];
-  const comandos = dias.map((d) => db.prepare("DELETE FROM anuncios_diario WHERE plataforma = 'meta' AND data = ?").bind(d));
+  const comandos = dias.map((d) => db.prepare('DELETE FROM anuncios_diario WHERE plataforma = ? AND data = ?').bind(r.plataforma, d));
   const insert = `INSERT INTO anuncios_diario (${COLUNAS_ADS.join(', ')}, importacao_id) VALUES (${COLUNAS_ADS.map(() => '?').join(', ')}, ?)`;
   for (const l of r.linhas) comandos.push(db.prepare(insert).bind(...COLUNAS_ADS.map((k) => l[k] ?? null), importacao));
   // Em blocos, para respeitar o limite de comandos por lote do D1.
@@ -370,7 +386,7 @@ rotas.post('/metricas/importar', exigirAdmin, async (c) => {
     )
     .bind(importacao)
     .first();
-  await auditar(db, { atorTipo: 'usuario', atorId: eu.id, acao: 'csv_importado', detalhe: `meta ${r.dataInicio}..${r.dataFim} linhas=${r.linhas.length}` });
+  await auditar(db, { atorTipo: 'usuario', atorId: eu.id, acao: 'csv_importado', detalhe: `${r.plataforma} ${r.dataInicio}..${r.dataFim} linhas=${r.linhas.length}` });
   return c.html(await telaImportar(c, { resultado: { ...r, linhas: r.linhas.length, campanhasNovas: n } }));
 });
 

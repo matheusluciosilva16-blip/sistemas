@@ -46,9 +46,10 @@ resumida abaixo.
 | **Listas de classificação no banco, editáveis em Configurações.** Opções nunca são apagadas, só desativadas. | Pedido do cliente: acrescentar classificações sem programador. Apagar mudaria leads antigos e o histórico das métricas. Lead que já tem a opção desativada continua podendo ser salvo. |
 | **Campos personalizados** (lista, sim/não, número, valor, data, texto curto) guardados em `leads.extras` (JSON). | Pedido do cliente: "adicionar colunas". JSON evita alterar a tabela a cada campo novo, e o D1 filtra por ele (`json_extract`). Campo de lista vira filtro e recorte nas métricas. |
 | **Texto curto existe, com aviso de LGPD, e é apagado na anonimização.** | Flexibilidade pedida pelo cliente sem abrir mão da exclusão a pedido. |
-| **Plataforma padrão = Meta** para leads das páginas de campanha sem plataforma informada. | O cliente anuncia só no Meta por enquanto, então a frase igual nas duas plataformas não é problema hoje. Ajustável em Configurações; trocar para "Nenhuma" quando o Google Ads começar. |
+| ~~Plataforma padrão única = Meta~~ → **plataforma padrão por página** (rev. de 15/10/2026). | Correção do cliente: o Google Ads continua, com campanha de outro foco (não busca e apreensão). Como cada plataforma anuncia uma página diferente, a página resolve a plataforma. Busca e apreensão = Meta; a página do Google é marcada em Configurações. |
 | **Visual das landing pages:** mesmas fontes (arquivos copiados de `teste-/src/assets/fonts`), tokens de cor, raios e símbolo da logo. Ação principal em dourado sólido. | Pedido do cliente. O verde `#25D366` é exclusivo do WhatsApp no `design.md`, por isso não é usado como cor de botão aqui. |
-| **Importação só do Meta por CSV;** reimportar substitui os dias do arquivo. | O cliente anuncia só no Meta. Substituir por dia torna a reimportação segura. Efeito colateral: o arquivo deve conter todas as campanhas (avisado na tela). |
+| **Importação por CSV do Meta e do Google Ads**, com a plataforma reconhecida pelo cabeçalho; reimportar substitui os dias do arquivo daquela plataforma. | As duas plataformas terão dados. Substituir por dia torna a reimportação segura; o arquivo deve conter todas as campanhas (avisado na tela). O Google aceita UTF-16/tabulação ("CSV para Excel") e ignora linhas de título e de total. |
+| **Conversões do Google e conversas do Meta na mesma coluna** ("conversões da plataforma"). | É o que cada plataforma conta como resultado. O CRM continua sendo a fonte dos leads; esse número serve para comparar com o que a plataforma enxerga. |
 | **Ligação investimento → leads pela página do site** (tabela `campanhas_paginas`). | A frase do WhatsApp identifica a página, não a campanha. Com duas campanhas na mesma página, o CPL/CAC só é separável por página, não por campanha. A tabela de campanhas mostra métricas de anúncio (CTR, CPM, hook), não CPL. |
 | **Leads por coorte de entrada.** | CAC compara a verba do período com o que os leads daquele período renderam. Explicado na tela. |
 | **CAC só com leads de plataformas pagas;** orgânico, indicação e "não se sabe" ficam fora, com aviso. | Não inflar nem subestimar o custo da mídia. |
@@ -58,12 +59,10 @@ resumida abaixo.
 
 ## Pontos já levantados para as próximas etapas
 
-- **Quando o Google Ads começar:** a frase do WhatsApp é a mesma nas duas plataformas. Aí
-  será preciso decidir entre (a) um código curto na mensagem, que **altera a frase exata
-  escrita pelo cliente** (decisão de 01/09/2026 no repositório do site) e exige autorização
-  dele, ou (b) aceitar a plataforma como "não se sabe" quando a pessoa não disser. Por ora,
-  resolvido pela plataforma padrão = Meta.
-- **Importação do Google Ads (CSV)** fica para quando houver campanha lá.
+- **Se Google e Meta passarem a anunciar a mesma página**, a frase do WhatsApp não distingue
+  as duas. Opções: (a) um código curto na mensagem, que **altera a frase exata escrita pelo
+  cliente** (decisão de 01/09/2026 no repositório do site) e exige autorização dele; (b) deixar
+  aquela página em "Não se sabe" e perguntar a origem no atendimento.
 - **Mínimos do diagnóstico com R$ 1.500/mês (etapa 5).** A verba rende algo como 30 a 70 leads
   por mês no total, divididos entre 2 campanhas e 2 plataformas. A regra "20 leads" da
   especificação levaria semanas por campanha. Proposta: janela padrão de **60 dias** para as

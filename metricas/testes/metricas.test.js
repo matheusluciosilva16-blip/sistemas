@@ -1,7 +1,7 @@
 // Testes da importação do CSV do Meta e das fórmulas. Rodar com: npm run testar
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { lerCsv, lerDecimal, lerInteiro, lerDia, importarMeta } from '../src/lib/importar-csv.js';
+import { lerCsv, lerDecimal, lerInteiro, lerDia, importarCsv, decodificar } from '../src/lib/importar-csv.js';
 import { derivar, resolverPeriodo } from '../src/lib/metricas.js';
 
 test('CSV com aspas, vírgula dentro do campo, ponto e vírgula e BOM', () => {
@@ -23,7 +23,7 @@ test('números nos formatos do Brasil e dos EUA', () => {
 const CAB = '"Dia","Nome da campanha","Nome do conjunto de anúncios","Nome do anúncio","Valor usado (BRL)","Impressões","Alcance","Cliques no link"';
 
 test('importa o CSV do Meta e soma linhas repetidas', () => {
-  const r = importarMeta(`${CAB}\n"2026-10-01","C1","A","X","10,50","1.000","800","12"\n"2026-10-01","C1","A","X","1,00","100","90","1"\n"2026-10-02","C1","A","X","5","500","400","4"\n`);
+  const r = importarCsv(`${CAB}\n"2026-10-01","C1","A","X","10,50","1.000","800","12"\n"2026-10-01","C1","A","X","1,00","100","90","1"\n"2026-10-02","C1","A","X","5","500","400","4"\n`);
   assert.equal(r.linhas.length, 2);
   assert.equal(r.linhas[0].investimento, 1150);
   assert.equal(r.linhas[0].impressoes, 1100);
@@ -34,12 +34,12 @@ test('importa o CSV do Meta e soma linhas repetidas', () => {
 
 test('recusa arquivo sem detalhamento por dia', () => {
   const cab = '"Início dos relatórios","Término dos relatórios","Nome da campanha","Valor usado (BRL)","Impressões"';
-  assert.throws(() => importarMeta(`${cab}\n"2026-10-01","2026-10-31","C1","100","1000"\n`), /Por tempo → Dia/);
-  assert.throws(() => importarMeta('"Campanha","Gasto"\n"a","1"\n'), /Valor usado/);
+  assert.throws(() => importarCsv(`${cab}\n"2026-10-01","2026-10-31","C1","100","1000"\n`), /Por tempo → Dia/);
+  assert.throws(() => importarCsv('"Campanha","Gasto"\n"a","1"\n'), /Não reconheci/);
 });
 
 test('aceita cabeçalho em inglês e ignora linha de total', () => {
-  const r = importarMeta('"Day","Campaign name","Amount spent (BRL)","Impressions","Link clicks"\n"2026-10-01","C1","10.00","1000","20"\n"","","10.00","1000","20"\n');
+  const r = importarCsv('"Day","Campaign name","Amount spent (BRL)","Impressions","Link clicks"\n"2026-10-01","C1","10.00","1000","20"\n"","","10.00","1000","20"\n');
   assert.equal(r.linhas.length, 1);
   assert.equal(r.nivel, 'campanha');
   assert.ok(r.avisos.some((a) => a.includes('ignoradas')));
@@ -81,4 +81,46 @@ test('período anterior tem o mesmo tamanho', () => {
   assert.equal(p.dias, 10);
   assert.deepEqual(p.anterior, { desde: '2026-09-21', ate: '2026-09-30' });
   assert.equal(resolverPeriodo({ periodo: 'xyz' }).periodo, '30d');
+});
+
+test('relatório do Google Ads: linhas de título, totais, "--" e conversões com decimais', () => {
+  const csv = [
+    'Relatório de campanhas',
+    '1 de outubro de 2026 - 2 de outubro de 2026',
+    'Dia,Campanha,Grupo de anúncios,Código da moeda,Custo,Impr.,Cliques,Conversões',
+    '2026-10-01,Conta bloqueada RJ,Grupo 1,BRL,"45,30",1.234,56,"2,00"',
+    '2026-10-02,Conta bloqueada RJ,Grupo 1,BRL,"12,00",300,9,--',
+    'Total: conta,--,--,BRL,"57,30",1.534,65,"2,00"',
+  ].join('\n');
+  const r = importarCsv(csv);
+  assert.equal(r.plataforma, 'google');
+  assert.equal(r.linhas.length, 2);
+  assert.equal(r.linhas[0].investimento, 4530);
+  assert.equal(r.linhas[0].impressoes, 1234);
+  assert.equal(r.linhas[0].cliques_link, 56);
+  assert.equal(r.linhas[0].conversas, 2);
+  assert.equal(r.linhas[1].conversas, null);
+  assert.equal(r.linhas[0].conjunto, 'Grupo 1');
+  assert.ok(r.avisos.some((a) => a.includes('ignoradas')));
+});
+
+test('Google em UTF-16 com tabulação ("CSV para Excel")', () => {
+  const texto = '\uFEFFDay\tCampaign\tCost\tImpr.\tClicks\n2026-10-01\tC1\t10.50\t1000\t20\n';
+  const bytes = new Uint8Array(2 + texto.length * 2);
+  bytes[0] = 0xff; bytes[1] = 0xfe;
+  for (let i = 0; i < texto.length; i++) { bytes[2 + i * 2] = texto.charCodeAt(i) & 0xff; bytes[3 + i * 2] = texto.charCodeAt(i) >> 8; }
+  const r = importarCsv(decodificar(bytes));
+  assert.equal(r.plataforma, 'google');
+  assert.equal(r.linhas[0].investimento, 1050);
+});
+
+test('Google sem coluna de dia é recusado com instrução', () => {
+  assert.throws(() => importarCsv('Campanha,Custo,Impr.\nC1,"10,00",100\n'), /Tempo → Dia/);
+});
+
+test('inteiros: milhar e decimal não se confundem', () => {
+  assert.equal(lerInteiro('1.234'), 1234);
+  assert.equal(lerInteiro('1,234'), 1234);
+  assert.equal(lerInteiro('2,00'), 2);
+  assert.equal(lerInteiro('--'), null);
 });

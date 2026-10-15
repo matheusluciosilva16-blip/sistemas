@@ -7,7 +7,7 @@ import { pagina } from '../lib/layout.js';
 import { exigirAdmin } from '../lib/permissoes.js';
 import { auditar } from '../lib/acesso.js';
 import {
-  carregarConfig, LISTAS_DO_SISTEMA, TIPOS_DE_CAMPO, SECOES, AJUSTES,
+  carregarConfig, LISTAS_DO_SISTEMA, TIPOS_DE_CAMPO, SECOES, AJUDA_PLATAFORMA_POR_PAGINA,
   paraIdentificador, chaveValida, opcoesParaSelecao,
 } from '../lib/config.js';
 
@@ -73,15 +73,19 @@ rotas.get('/configuracoes', async (c) => {
 
         <h2 id="ajustes">Ajustes</h2>
         <form method="post" action="/configuracoes/ajustes" class="card">
-          <label for="plataforma_padrao">${AJUSTES.plataforma_padrao.rotulo}</label>
-          <select id="plataforma_padrao" name="plataforma_padrao">
-            <option value="">Nenhuma: deixar "não se sabe"</option>
-            ${Object.entries(opcoesParaSelecao(config, 'plataforma', config.ajustes.plataforma_padrao)).map(
-              ([v, r]) => html`<option value="${v}" ${v === config.ajustes.plataforma_padrao ? html`selected` : ''}>${r}</option>`
-            )}
-          </select>
-          <p class="fraco">${AJUSTES.plataforma_padrao.ajuda}</p>
-          <button class="botao mini" type="submit" style="margin-top:8px">Salvar ajustes</button>
+          <h3>Qual plataforma anuncia cada página</h3>
+          <p class="fraco">${AJUDA_PLATAFORMA_POR_PAGINA}</p>
+          ${(config.listas.pagina || []).filter((o) => o.ativo).map((o) => {
+            const atual = config.ajustes[`plataforma_padrao:${o.valor}`] || '';
+            return html`<label for="pp-${o.valor}">${o.rotulo}</label>
+              <select id="pp-${o.valor}" name="pp:${o.valor}">
+                <option value="">Não se sabe / nenhuma</option>
+                ${Object.entries(opcoesParaSelecao(config, 'plataforma', atual)).map(
+                  ([v, r]) => html`<option value="${v}" ${v === atual ? html`selected` : ''}>${r}</option>`
+                )}
+              </select>`;
+          })}
+          <button class="botao mini" type="submit" style="margin-top:16px">Salvar</button>
         </form>
 
         <h2 id="listas">Listas de classificação</h2>
@@ -148,12 +152,21 @@ rotas.get('/configuracoes', async (c) => {
 rotas.post('/configuracoes/ajustes', async (c) => {
   const form = await c.req.parseBody();
   const config = await carregarConfig(c.env.DB);
-  const valor = String(form.plataforma_padrao || '');
-  if (valor && !(config.listas.plataforma || []).some((o) => o.valor === valor && o.ativo)) return voltar(c, 'ajustes', 'Plataforma inválida.');
-  await c.env.DB.prepare('INSERT INTO ajustes (chave, valor) VALUES (?, ?) ON CONFLICT(chave) DO UPDATE SET valor = excluded.valor')
-    .bind('plataforma_padrao', valor || null)
-    .run();
-  await registrar(c, 'ajuste_alterado', `plataforma_padrao=${valor || '(nenhuma)'}`);
+  const comandos = [];
+  const resumo = [];
+  for (const o of config.listas.pagina || []) {
+    const campo = `pp:${o.valor}`;
+    if (!(campo in form)) continue;
+    const valor = String(form[campo] || '');
+    if (valor && !(config.listas.plataforma || []).some((p) => p.valor === valor && p.ativo)) return voltar(c, 'ajustes', 'Plataforma inválida.');
+    comandos.push(
+      c.env.DB.prepare('INSERT INTO ajustes (chave, valor) VALUES (?, ?) ON CONFLICT(chave) DO UPDATE SET valor = excluded.valor')
+        .bind(`plataforma_padrao:${o.valor}`, valor || null)
+    );
+    resumo.push(`${o.valor}=${valor || '-'}`);
+  }
+  if (comandos.length) await c.env.DB.batch(comandos);
+  await registrar(c, 'ajuste_alterado', `plataforma por página: ${resumo.join(' ')}`);
   return voltar(c, 'ajustes');
 });
 
