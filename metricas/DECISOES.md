@@ -39,18 +39,31 @@ resumida abaixo.
 | **Anonimização em vez de apagar a linha.** Só admin, pelo painel, com confirmação digitada. | Apagar a linha mudaria o CAC e o histórico das campanhas. Fora da API, porque é irreversível. |
 | **Valores em centavos, datas em ms UTC, entrada e saída em horário de Brasília.** | Sem erro de arredondamento; sem confusão de fuso. |
 
+## CRM configurável, visual e métricas (15/10/2026)
+
+| Decisão | Motivo |
+|---|---|
+| **Listas de classificação no banco, editáveis em Configurações.** Opções nunca são apagadas, só desativadas. | Pedido do cliente: acrescentar classificações sem programador. Apagar mudaria leads antigos e o histórico das métricas. Lead que já tem a opção desativada continua podendo ser salvo. |
+| **Campos personalizados** (lista, sim/não, número, valor, data, texto curto) guardados em `leads.extras` (JSON). | Pedido do cliente: "adicionar colunas". JSON evita alterar a tabela a cada campo novo, e o D1 filtra por ele (`json_extract`). Campo de lista vira filtro e recorte nas métricas. |
+| **Texto curto existe, com aviso de LGPD, e é apagado na anonimização.** | Flexibilidade pedida pelo cliente sem abrir mão da exclusão a pedido. |
+| **Plataforma padrão = Meta** para leads das páginas de campanha sem plataforma informada. | O cliente anuncia só no Meta por enquanto, então a frase igual nas duas plataformas não é problema hoje. Ajustável em Configurações; trocar para "Nenhuma" quando o Google Ads começar. |
+| **Visual das landing pages:** mesmas fontes (arquivos copiados de `teste-/src/assets/fonts`), tokens de cor, raios e símbolo da logo. Ação principal em dourado sólido. | Pedido do cliente. O verde `#25D366` é exclusivo do WhatsApp no `design.md`, por isso não é usado como cor de botão aqui. |
+| **Importação só do Meta por CSV;** reimportar substitui os dias do arquivo. | O cliente anuncia só no Meta. Substituir por dia torna a reimportação segura. Efeito colateral: o arquivo deve conter todas as campanhas (avisado na tela). |
+| **Ligação investimento → leads pela página do site** (tabela `campanhas_paginas`). | A frase do WhatsApp identifica a página, não a campanha. Com duas campanhas na mesma página, o CPL/CAC só é separável por página, não por campanha. A tabela de campanhas mostra métricas de anúncio (CTR, CPM, hook), não CPL. |
+| **Leads por coorte de entrada.** | CAC compara a verba do período com o que os leads daquele período renderam. Explicado na tela. |
+| **CAC só com leads de plataformas pagas;** orgânico, indicação e "não se sabe" ficam fora, com aviso. | Não inflar nem subestimar o custo da mídia. |
+| **Frequência = impressões ÷ soma do alcance diário** ("frequência diária média"). | O alcance não se soma entre dias, e o CSV diário não traz o alcance do período. O nome na tela deixa isso claro. |
+| **Hook rate e retenção só sobre impressões de anúncios com dados de vídeo.** | Anúncio de imagem derrubaria o hook rate artificialmente. |
+| **Gráficos em SVG gerado no servidor,** uma série por gráfico, com dica nativa e tabela equivalente. | Mantém a página sem JavaScript e com CSP rígida. Investimento e leads em gráficos separados: nunca dois eixos. |
+
 ## Pontos já levantados para as próximas etapas
 
-- **A frase do WhatsApp não distingue Google de Meta.** Busca e apreensão e conta bloqueada
-  recebem tráfego das duas plataformas na mesma página e com a mesma frase. Sem outro sinal, o
-  lead fica com `plataforma` vazia, e o CAC por plataforma da etapa 4 só será confiável para os
-  leads em que a plataforma for conhecida. Isso reforça a decisão pendente abaixo, sobre o
-  código de rastreio.
-- **Origem do lead no WhatsApp (etapa 3).** O identificador de clique do Google (gclid) não
-  atravessa o `wa.me`. Opções: (a) a página acrescentar um código curto à mensagem, por exemplo
-  `(ref. A7K2)`, o que **altera a frase exata escrita pelo cliente** (decisão de 01/09/2026 no
-  repositório do site) e exige autorização dele; (b) atribuir só por página/campanha, sem
-  granularidade de anúncio. **Ainda não decidido.**
+- **Quando o Google Ads começar:** a frase do WhatsApp é a mesma nas duas plataformas. Aí
+  será preciso decidir entre (a) um código curto na mensagem, que **altera a frase exata
+  escrita pelo cliente** (decisão de 01/09/2026 no repositório do site) e exige autorização
+  dele, ou (b) aceitar a plataforma como "não se sabe" quando a pessoa não disser. Por ora,
+  resolvido pela plataforma padrão = Meta.
+- **Importação do Google Ads (CSV)** fica para quando houver campanha lá.
 - **Mínimos do diagnóstico com R$ 1.500/mês (etapa 5).** A verba rende algo como 30 a 70 leads
   por mês no total, divididos entre 2 campanhas e 2 plataformas. A regra "20 leads" da
   especificação levaria semanas por campanha. Proposta: janela padrão de **60 dias** para as

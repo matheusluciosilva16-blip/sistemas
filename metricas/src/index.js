@@ -14,6 +14,9 @@ import chaves from './rotas/chaves.js';
 import api from './rotas/api.js';
 import leads from './rotas/leads.js';
 import configuracoes from './rotas/configuracoes.js';
+import metricas from './rotas/metricas.js';
+import { resolverPeriodo, calcular } from './lib/metricas.js';
+import { reais } from './lib/leads.js';
 
 const app = new Hono();
 
@@ -48,28 +51,41 @@ app.use('*', exigirLogin);
 
 app.get('/painel', async (c) => {
   const usuario = c.get('usuario');
-  const aguardando = await c.env.DB.prepare(
-    "SELECT COUNT(*) AS n FROM leads_com_etapa WHERE etapa = 'novo' AND anonimizado_em IS NULL"
-  ).first('n');
+  const db = c.env.DB;
+  const p = resolverPeriodo({ periodo: '30d' });
+  const [aguardando, m] = await Promise.all([
+    db.prepare("SELECT COUNT(*) AS n FROM leads_com_etapa WHERE etapa = 'novo' AND anonimizado_em IS NULL").first('n'),
+    calcular(db, p),
+  ]);
+  const card = (titulo, valor) => html`<div class="card"><span class="eyebrow">${titulo}</span><div class="numeral">${valor}</div></div>`;
+  const din = (v) => (v == null ? '—' : reais(Math.round(v)));
   return c.html(
     pagina({
       titulo: 'Painel',
       usuario,
       atual: '/painel',
       conteudo: html`
+        <span class="eyebrow">Painel</span>
         <h1>Olá, ${usuario.nome.split(' ')[0]}</h1>
         ${aguardando
           ? html`<a class="aviso ouro" style="display:block;text-decoration:none" href="/leads?etapa=novo">
               <strong>${aguardando} lead(s) aguardando o primeiro atendimento →</strong></a>`
           : ''}
-        <div class="aviso ouro">O sistema está em construção. Já funcionam: acesso da equipe, chaves de API e o <strong>CRM</strong> (etapa 2).</div>
-        <div class="card">
-          <h2 style="margin-top:0">Etapas</h2>
+        <h2>Últimos 30 dias</h2>
+        <div class="grade">
+          ${card('Investimento', din(m.investimento))}
+          ${card('Leads', m.leads)}
+          ${card('Contratos', m.contratos)}
+          ${card('CAC', din(m.cac))}
+        </div>
+        <a class="botao" href="/metricas" style="margin-top:0">Ver todas as métricas</a>
+        <div class="card" style="margin-top:32px">
+          <h3>Etapas do sistema</h3>
           <ol>
             <li>Base: login, equipe e chaves de API ✓</li>
-            <li><strong>CRM: registro de leads e API para a Naia</strong> ✓</li>
-            <li>Importação de CSV do Google Ads e do Meta Ads</li>
-            <li>CAC, ROAS e painel com funil</li>
+            <li>CRM configurável e API para a Naia ✓</li>
+            <li>Importação de CSV do Meta Ads ✓ <span class="fraco">(Google Ads quando a campanha começar)</span></li>
+            <li>Métricas, funil e painel ✓</li>
             <li>Diagnóstico automático</li>
             <li>Coleta automática pelas APIs</li>
             <li>Alertas semanais</li>
@@ -81,6 +97,7 @@ app.get('/painel', async (c) => {
 
 app.route('/', leads);
 app.route('/', configuracoes);
+app.route('/', metricas);
 app.route('/', equipe);
 app.route('/', chaves);
 

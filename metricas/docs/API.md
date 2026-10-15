@@ -58,10 +58,10 @@ ela não é gravada. A resposta diz o que foi reconhecido:
 | Preciso de orientação sobre uma situação criminal urgente | `criminal` | `criminal` |
 | Gostaria de orientação jurídica | `entrada` | *(não define)* |
 
-⚠️ **A frase não diz se a pessoa veio do Google ou do Meta**: as duas plataformas levam à mesma
-página. Se a plataforma for conhecida (a pessoa contou, ou veio de anúncio de clique para
-WhatsApp do Meta), informe `plataforma`. Se não, deixe vazio: é melhor "não se sabe" do que um
-chute, que distorceria o CAC de cada plataforma.
+**Plataforma:** quando a frase é de uma página de campanha e você não informa `plataforma`,
+o CRM usa a **plataforma padrão** das Configurações (hoje: `meta`, porque só há campanha no
+Meta). Se souber a plataforma de verdade (a pessoa contou), informe; o valor enviado sempre
+prevalece. `GET /opcoes` mostra a plataforma padrão em vigor.
 
 ### 2. A equipe respondeu pela primeira vez
 
@@ -117,12 +117,30 @@ Para reabrir um lead perdido: `{ "perdido_em": null }`.
 
 ---
 
+## Campos personalizados
+
+O administrador pode criar campos novos em **Configurações**. Eles aparecem em
+`GET /opcoes → campos_personalizados`, com o código (`chave`), o tipo e, nas listas, as opções
+aceitas. Envie pelo código, solto ou dentro de `extras`:
+
+```http
+PATCH /leads/12
+{ "tipo_de_veiculo": "moto" }
+```
+
+ou `{ "extras": { "tipo_de_veiculo": "moto" } }`. Na leitura, eles vêm em `lead.extras`. Valor
+vazio (`null` ou `""`) apaga o campo. Para filtrar: `GET /leads?tipo_de_veiculo=moto`.
+
+As listas do sistema (área, motivos, canal...) também podem ganhar opções novas. **Consulte
+`GET /opcoes` em vez de fixar os valores no código da agente.** Opção desativada é recusada em
+lead novo.
+
 ## Rotas
 
 | Método e rota | Permissão | O que faz |
 |---|---|---|
 | `GET /status` | qualquer chave | Testa a chave |
-| `GET /opcoes` | qualquer chave | Valores aceitos em cada lista, etapas e frases do site |
+| `GET /opcoes` | qualquer chave | Valores aceitos em cada lista, campos personalizados, etapas, frases do site e plataforma padrão |
 | `POST /leads` | `leads:escrever` | Cria (ou devolve o existente) |
 | `PATCH /leads/{id}` | `leads:escrever` | Altera só os campos enviados |
 | `GET /leads/{id}` | `leads:ler` | Um lead |
@@ -146,20 +164,20 @@ apaga os dados de forma definitiva.
 | `canal` | lista | `whatsapp` (padrão), `ligacao`, `formulario`, `presencial`, `outro` |
 | `plataforma` | lista | `google`, `meta`, `organico`, `indicacao`, `outra`. Deduzida da `utm_source` quando houver |
 | `pagina` | lista | `busca-e-apreensao`, `conta-bloqueada`, `criminal`, `entrada` |
-| `area` | lista | `busca_apreensao`, `conta_bloqueada`, `criminal`, `outra` |
+| `area` | lista | Inicial: `busca_apreensao`, `conta_bloqueada`, `criminal`, `outra`. Editável: consulte `/opcoes` |
 | `utm_source` … `utm_term` | texto | Quando conhecidos |
 | `campanha`, `conjunto`, `anuncio` | texto | Nome ou ID na plataforma |
 | `ref` | texto | Código de rastreio (reservado, ver DECISOES.md) |
 | `referencia_externa` | texto | ID na origem. Só na criação. Impede duplicidade |
 | `primeiro_atendimento_em` | data | Primeira resposta humana |
 | `qualificado` | sim/não | |
-| `motivo_desqualificacao` | lista | `area_nao_atendida`, `fora_da_regiao`, `so_informacao`, `sem_condicao_financeira`, `contato_invalido`, `duplicado`, `outro` |
+| `motivo_desqualificacao` | lista | Inicial: `area_nao_atendida`, `fora_da_regiao`, `so_informacao`, `sem_condicao_financeira`, `contato_invalido`, `duplicado`, `outro`. Editável |
 | `consulta_agendada_para` | data | |
 | `compareceu` | sim/não | Exige consulta agendada |
 | `contrato_em` | data | Marca como qualificado automaticamente |
 | `honorarios_iniciais` | reais | Exige `contrato_em` |
 | `exito_estimado` | reais | Opcional. Exige `contrato_em` |
-| `motivo_perda` | lista | `sem_resposta`, `honorarios`, `outro_advogado`, `desistiu`, `resolveu_sozinho`, `outro`. Registra `perdido_em` |
+| `motivo_perda` | lista | Inicial: `sem_resposta`, `honorarios`, `outro_advogado`, `desistiu`, `resolveu_sozinho`, `outro`. Editável. Registra `perdido_em` |
 | `perdido_em` | data | `null` reabre o lead |
 
 **Etapa** (calculada, só leitura): `novo` → `em_atendimento` → `qualificado` →

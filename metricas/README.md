@@ -12,9 +12,9 @@ senha. A Naia (e qualquer outra integração) alimenta o CRM por **chave de API*
 | # | Etapa | Situação |
 |---|---|---|
 | 1 | Base: login, equipe e chaves de API | ✅ pronta |
-| 2 | CRM: registro de leads e API para a Naia | ✅ pronta |
-| 3 | Importação de CSV do Google Ads e do Meta Ads | a fazer |
-| 4 | CAC, ROAS e painel com funil | a fazer |
+| 2 | CRM configurável: registro de leads, listas e campos editáveis, API para a Naia | ✅ pronta |
+| 3 | Importação de CSV do Meta Ads | ✅ pronta (Google Ads quando houver campanha lá) |
+| 4 | Métricas: CAC, ROAS, funil, evolução diária, tabelas por campanha, página e classificação | ✅ pronta |
 | 5 | Diagnóstico automático | a fazer |
 | 6 | Coleta automática pelas APIs (Meta, depois Google) | a fazer |
 | 7 | Alertas semanais | a fazer |
@@ -113,6 +113,42 @@ Pronto. A tela de primeiro acesso deixa de existir assim que a sua conta é cria
 
 ---
 
+## Como testar a configuração do CRM
+
+1. **Configurações → Listas de classificação:** abra "Área / tipo de caso", adicione
+   "Previdenciário" e veja a opção nova no cadastro do lead.
+2. **Desative** uma opção: ela some dos formulários, mas os leads que já a tinham continuam
+   mostrando o valor (marcado como "desativada").
+3. **Campos personalizados → Novo campo:** crie, por exemplo, "Tipo de veículo", do tipo
+   *lista*, com as opções Carro, Moto e Caminhão, marcando "Mostrar na lista de leads". O campo
+   aparece no cadastro, vira coluna e filtro na lista de leads, e um recorte em Métricas. A
+   Naia passa a poder preenchê-lo pela API com o código mostrado na tela (`tipo_de_veiculo`).
+4. **Ajustes:** a plataforma padrão está em **Meta Ads**, porque por enquanto só há campanha
+   no Meta. Quando o Google Ads começar, troque para "Nenhuma".
+
+## Como testar as métricas
+
+1. **Métricas → Importar CSV do Meta.** O passo a passo da exportação está na própria tela.
+   Importe o mês inteiro. Importar de novo **substitui** os dias do arquivo, então não duplica.
+2. **Métricas → Campanhas → páginas.** Diga qual página do site cada campanha anuncia. O
+   sistema já sugere pelo nome da campanha; confira e salve. É isso que liga o investimento aos
+   leads do CRM, porque a mensagem do WhatsApp identifica a página, e não a campanha.
+3. Abra **Métricas** e escolha o período. Você vê:
+   - indicadores principais com a variação contra o período anterior;
+   - o funil, de impressões até contratos, com a taxa de passagem de cada etapa;
+   - investimento e leads por dia;
+   - todas as métricas da especificação, agrupadas nas cinco etapas;
+   - a tabela por campanha, conjunto ou anúncio, ordenável e com destaque do que está muito
+     abaixo da média;
+   - CPL e CAC por página do site;
+   - o funil de leads por área, motivo, canal ou qualquer campo personalizado do tipo lista.
+
+> **Como os leads entram no período.** Contam os leads que *entraram* no período, com as
+> consultas e os contratos que eles geraram, mesmo que o contrato saia semanas depois. Os
+> períodos mais recentes tendem a mostrar menos contratos até o atendimento terminar.
+
+---
+
 ## Segurança e LGPD
 
 - **Senhas** guardadas com PBKDF2 (100 mil iterações). Ninguém, nem quem acessar o banco,
@@ -142,7 +178,7 @@ cd metricas
 npm install
 echo 'CHAVE_INSTALACAO=qualquer-coisa-local' > .dev.vars
 npm run dev       # sobe em http://localhost:8787 com banco local
-npm run testar    # testes de segurança, escape de HTML e regras do CRM
+npm run testar    # segurança, escape de HTML, regras do CRM, CSV do Meta e fórmulas
 ```
 
 | Pasta | O que tem |
@@ -153,7 +189,10 @@ npm run testar    # testes de segurança, escape de HTML e regras do CRM
 | `migrations/` | Estrutura do banco. **Nunca edite uma migração já publicada**: crie a próxima (`0002_...sql`) |
 | `testes/` | Testes automatizados |
 | `docs/API.md` | Guia da API para a Naia e outras integrações |
+| `public/` | Fontes e logo, os mesmos arquivos das landing pages |
 | `DECISOES.md` | Por que as coisas são como são |
 
 Stack: Cloudflare Workers + D1 (SQLite) + [Hono](https://hono.dev). Telas montadas no
-servidor, sem framework de front-end e sem JavaScript no navegador.
+servidor, sem framework de front-end e sem JavaScript no navegador (os gráficos são SVG
+gerado no servidor). Visual idêntico ao das landing pages: Noto Serif e Noto Sans
+self-hosted, mesmas cores e mesmo símbolo da logo.

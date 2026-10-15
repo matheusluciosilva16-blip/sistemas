@@ -28,7 +28,7 @@ h1{font-size:clamp(1.625rem,5vw,2.25rem);line-height:1.15;letter-spacing:-.015em
 h2{font-size:clamp(1.25rem,3.6vw,1.5rem);line-height:1.25;letter-spacing:-.01em;margin:32px 0 12px}
 h3{font:700 1.0625rem/1.3 var(--ui);color:var(--ink);margin:0 0 8px;letter-spacing:-.01em}
 .eyebrow{display:block;font:700 .75rem/1.4 var(--ui);letter-spacing:.14em;text-transform:uppercase;color:var(--gold);margin-bottom:8px}
-.numeral{font:700 clamp(1.5rem,4vw,2rem)/1 var(--display);color:var(--ink);letter-spacing:-.01em}
+.numeral{font:700 clamp(1.375rem,3vw,1.75rem)/1.1 var(--display);color:var(--ink);letter-spacing:-.01em;overflow-wrap:anywhere}
 
 header{background:var(--deep);border-bottom:1px solid var(--line);padding:12px 20px}
 .topo{max-width:1140px;margin:0 auto}
@@ -44,7 +44,8 @@ nav button{background:none;border:0;color:var(--muted);font:inherit;padding:8px 
 main{max-width:1140px;margin:0 auto;padding:24px 20px 72px}
 
 .card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:20px;margin-bottom:16px}
-.grade{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));margin-bottom:16px}
+.grade{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));margin-bottom:16px}
+.grade .card{padding:18px}
 .grade .card{margin:0}
 
 label{display:block;font-weight:600;color:var(--ink);margin:14px 0 6px;font-size:.9375rem}
@@ -88,6 +89,9 @@ details>summary{cursor:pointer}
   .tabela tr:last-child{border-bottom:0}
   .tabela td{display:block;border:0;padding:3px 0}
   .tabela td:empty{display:none}
+  .tabela td[data-r]::before{content:attr(data-r) ': ';color:var(--muted)}
+  .grade.kpi{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .grade.kpi .numeral{font-size:1.25rem}
 }
 @media (min-width:1024px){main{padding:40px 24px 96px}.card{padding:28px}}
 @media (prefers-reduced-motion:reduce){*{transition-duration:.01ms!important}}
@@ -101,7 +105,7 @@ details>summary{cursor:pointer}
  * @param {string} [op.atual]  caminho da página atual, para destacar no menu
  */
 export function pagina({ titulo, conteudo, usuario, atual }) {
-  const itens = [['/painel', 'Painel'], ['/leads', 'Leads']];
+  const itens = [['/painel', 'Painel'], ['/metricas', 'Métricas'], ['/leads', 'Leads']];
   if (usuario?.papel === 'admin') itens.push(['/configuracoes', 'Configurações'], ['/equipe', 'Equipe'], ['/chaves', 'Chaves de API']);
   itens.push(['/conta', 'Minha conta']);
 
