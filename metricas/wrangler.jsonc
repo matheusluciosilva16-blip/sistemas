@@ -1,0 +1,17 @@
+// Configuração do Worker no Cloudflare.
+// O único campo que você precisa preencher é o database_id (ver README, passo 2).
+{
+  "name": "metricas-escritorio",
+  "main": "src/index.js",
+  "compatibility_date": "2026-09-01",
+  "observability": { "enabled": true },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "metricas",
+      // ← cole aqui o "Database ID" mostrado no painel do Cloudflare (D1 → metricas)
+      "database_id": "PREENCHER-ID-DO-D1",
+      "migrations_dir": "migrations"
+    }
+  ]
+}

@@ -5,6 +5,7 @@ Sistemas e automações do escritório. Cada pasta é um projeto independente.
 | Pasta | O que é |
 |---|---|
 | [`naia/`](naia/) | Agente pessoal em VPS, conversa pelo Telegram — configuração, instalador e runbook |
+| [`metricas/`](metricas/) | Métricas de tráfego pago (Google Ads e Meta Ads) e CRM, no Cloudflare. A Naia alimenta por chave de API |
 
 ## Regra que vale para todo o repositório
 

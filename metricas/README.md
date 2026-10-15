@@ -1,0 +1,136 @@
+# Métricas — tráfego pago e CRM do escritório
+
+Sistema para acompanhar as campanhas do Google Ads e do Meta Ads, do anúncio até o contrato
+fechado, e apontar onde está o gargalo. A métrica principal é o **CAC** (custo para conquistar
+um cliente).
+
+Roda no **Cloudflare**, na mesma conta do site, e abre no celular. A equipe entra com e-mail e
+senha. A Naia (e qualquer outra integração) alimenta o CRM por **chave de API**.
+
+## Onde está cada etapa
+
+| # | Etapa | Situação |
+|---|---|---|
+| 1 | Base: login, equipe e chaves de API | ✅ pronta |
+| 2 | CRM: registro de leads e API para a Naia | a fazer |
+| 3 | Importação de CSV do Google Ads e do Meta Ads | a fazer |
+| 4 | CAC, ROAS e painel com funil | a fazer |
+| 5 | Diagnóstico automático | a fazer |
+| 6 | Coleta automática pelas APIs (Meta, depois Google) | a fazer |
+| 7 | Alertas semanais | a fazer |
+
+---
+
+## Colocar no ar pela primeira vez
+
+São cinco passos, todos no painel do Cloudflare (dash.cloudflare.com). Use **janela anônima**
+se a extensão do navegador bloquear o painel, como já aconteceu com o site.
+
+### 1. Criar o banco de dados
+
+**Storage & Databases → D1 → Create database.** Nome: `metricas`. Região: deixe a automática.
+
+Na página do banco, copie o **Database ID** (um código como `a1b2c3d4-...`).
+
+### 2. Colar o ID no projeto
+
+Abra `metricas/wrangler.jsonc` no GitHub (dá para editar pelo celular, no ícone do lápis),
+troque `PREENCHER-ID-DO-D1` pelo código copiado e faça o commit.
+Esse ID não é segredo: sem login na sua conta ele não dá acesso a nada.
+
+> Se preferir, mande o ID para o Claude e ele faz essa alteração.
+
+### 3. Criar o Worker ligado ao GitHub
+
+**Workers & Pages → Create → Import a repository →** escolha `sistemas`.
+
+| Campo | Valor |
+|---|---|
+| Project name | `metricas-escritorio` |
+| Root directory | `metricas` |
+| Build command | *(deixe vazio)* |
+| Deploy command | `npm run publicar` |
+| Build watch paths *(em Advanced settings, se aparecer)* | `metricas/*` |
+
+O comando `publicar` primeiro atualiza as tabelas do banco e depois publica o sistema. Daqui
+para frente, todo push na `main` republica sozinho, como no site. Com o *watch path*
+preenchido, só as mudanças em `metricas/` disparam a publicação. Sem ele, uma mudança na Naia
+também republica o sistema, o que não causa problema.
+
+### 4. Cadastrar a chave de instalação
+
+No Worker: **Settings → Variables and Secrets → Add →** tipo **Secret**.
+
+- Nome: `CHAVE_INSTALACAO`
+- Valor: uma frase longa que só você conhece (use um gerador de senhas)
+
+Ela só serve para criar a **primeira** conta. Sem ela, alguém que descobrisse o endereço antes
+de você poderia se cadastrar como administrador.
+
+### 5. Criar a sua conta
+
+Abra o endereço do Worker (algo como `metricas-escritorio.SEU-USUARIO.workers.dev`). Ele leva
+à tela **Primeiro acesso**. Informe a chave de instalação, seu nome, e-mail e senha.
+
+Pronto. A tela de primeiro acesso deixa de existir assim que a sua conta é criada.
+
+---
+
+## Como testar a etapa 1
+
+1. **Entrar pelo celular** com o e-mail e a senha que você criou.
+2. **Equipe → Adicionar pessoa:** cadastre alguém com papel *Equipe*. Entre com essa conta em
+   outra janela anônima e confira que ela **não** vê "Equipe" nem "Chaves de API" no menu.
+3. **Desativar:** desative essa pessoa. Na janela dela, recarregue: ela deve ser mandada para
+   o login na hora.
+4. **Chaves de API → Nova chave** com o nome `Naia`. Copie a chave mostrada (ela aparece uma
+   única vez).
+5. **Testar a chave.** Num terminal (ou pedindo à Naia):
+
+   ```bash
+   curl -H "Authorization: Bearer COLE_A_CHAVE" https://ENDERECO-DO-WORKER/api/v1/status
+   ```
+
+   A resposta esperada é `{"ok":true,"chave":"Naia",...}`.
+6. **Revogar** a chave de teste e repetir o comando: agora deve responder `chave_invalida`.
+
+---
+
+## Segurança e LGPD
+
+- **Senhas** guardadas com PBKDF2 (100 mil iterações). Ninguém, nem quem acessar o banco,
+  consegue ler a senha.
+- **Chaves de API e sessões** guardadas só como hash. A chave completa aparece uma vez, na
+  criação.
+- **Cinco tentativas de senha erradas** em 15 minutos bloqueiam o login por 15 minutos.
+- **Desativar uma pessoa** encerra todas as sessões dela na hora.
+- **Auditoria:** quem entrou, quem criou ou revogou chave, quem adicionou ou desativou pessoa.
+  Não registra dado de lead.
+- **Nenhum segredo vai para o GitHub.** O `.env` e o `.dev.vars` estão no `.gitignore`. A
+  `CHAVE_INSTALACAO` vive só no Cloudflare.
+- O repositório `sistemas` é **público**. O código pode ser visto, e por isso não tem segredo
+  nenhum. Os dados ficam no banco D1, que só a sua conta do Cloudflare acessa.
+
+---
+
+## Para quem for programar
+
+```bash
+cd metricas
+npm install
+echo 'CHAVE_INSTALACAO=qualquer-coisa-local' > .dev.vars
+npm run dev       # sobe em http://localhost:8787 com banco local
+npm run testar    # testes de segurança e de escape de HTML
+```
+
+| Pasta | O que tem |
+|---|---|
+| `src/index.js` | Rotas e proteções gerais (CSRF, cabeçalhos de segurança, login) |
+| `src/rotas/` | Telas e API, uma por área |
+| `src/lib/` | Segurança, sessões e chaves, HTML com escape, layout |
+| `migrations/` | Estrutura do banco. **Nunca edite uma migração já publicada**: crie a próxima (`0002_...sql`) |
+| `testes/` | Testes automatizados |
+| `DECISOES.md` | Por que as coisas são como são |
+
+Stack: Cloudflare Workers + D1 (SQLite) + [Hono](https://hono.dev). Telas montadas no
+servidor, sem framework de front-end e sem JavaScript no navegador.
