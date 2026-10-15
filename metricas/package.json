@@ -1,0 +1,18 @@
+{
+  "name": "metricas-escritorio",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Métricas de tráfego pago e CRM do escritório Matheus Lucio Silva — Advogado",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler d1 migrations apply DB --local && wrangler dev",
+    "testar": "node --test testes/*.test.js",
+    "publicar": "wrangler d1 migrations apply DB --remote && wrangler deploy"
+  },
+  "dependencies": {
+    "hono": "4.13.12"
+  },
+  "devDependencies": {
+    "wrangler": "4.140.0"
+  }
+}

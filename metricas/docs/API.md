@@ -1,0 +1,204 @@
+# API do CRM — guia para a Naia (e outras integrações)
+
+Endereço base: `https://ENDERECO-DO-WORKER/api/v1`
+
+Toda chamada leva a chave no cabeçalho:
+
+```
+Authorization: Bearer mls_...
+Content-Type: application/json
+```
+
+A chave é criada no painel, em **Chaves de API**, e fica só no `.env` de quem a usa.
+Nunca no GitHub, nunca em mensagem.
+
+---
+
+## Regras que a agente precisa seguir
+
+1. **Nunca enviar detalhes do caso.** O CRM recusa qualquer campo fora da lista abaixo
+   (`422 Campo desconhecido`). Não existe campo de observação, e isso é de propósito (LGPD).
+2. **Um lead por pessoa.** Se a mesma `referencia_externa`, ou o mesmo telefone nos últimos
+   90 dias, já existir, o CRM **devolve o lead existente** (`ja_existia: true`) em vez de
+   duplicar. Pode chamar a criação sem medo de contar duas vezes.
+3. **Primeiro atendimento = primeira resposta de uma pessoa da equipe.** Resposta automática
+   não conta, senão o tempo de resposta vira sempre zero e o indicador perde o sentido.
+4. **Datas sem fuso valem como horário de Brasília.** Também aceita `"agora"`.
+5. **Valores em reais:** `3500`, `3500.50` ou `"3.500,50"`.
+
+---
+
+## Fluxo recomendado
+
+### 1. Chegou mensagem nova no WhatsApp → criar o lead
+
+```http
+POST /leads
+{
+  "nome": "Maria Souza",
+  "telefone": "(22) 99999-8888",
+  "entrada_em": "2026-10-15T09:12",
+  "mensagem_inicial": "Olá! Tive valores bloqueados judicialmente na minha conta e gostaria de orientação.",
+  "referencia_externa": "whatsapp-5522999998888-2026-10-15"
+}
+```
+
+`mensagem_inicial` serve **só** para reconhecer de qual página do site a pessoa veio. O CRM
+compara a mensagem com as frases do site, preenche `pagina` e `area`, e **descarta a mensagem**:
+ela não é gravada. A resposta diz o que foi reconhecido:
+
+```json
+{ "ja_existia": false, "origem_identificada": "conta-bloqueada", "lead": { "id": 12, "etapa": "novo", ... } }
+```
+
+As frases ficam em **Configurações → Frases de origem do WhatsApp** e podem mudar. A lista em
+vigor está em `GET /opcoes → frases_de_origem`. As iniciais:
+
+| Frase do site (trecho) | `pagina` | `area` |
+|---|---|---|
+| Estou com um problema de busca e apreensão no meu veículo | `busca-e-apreensao` | `busca_apreensao` |
+| Tive valores bloqueados judicialmente na minha conta | `conta-bloqueada` | `conta_bloqueada` |
+| Preciso de orientação sobre uma situação criminal urgente | `criminal` | `criminal` |
+| Gostaria de orientação jurídica | `entrada` | *(não define)* |
+| Tenho uma questão sobre imóvel | `imobiliario` | `imobiliario` |
+
+Também existe a página `jurisoft` (site Jurisoft, Google Ads), com a frase a cadastrar em
+Configurações.
+
+**Mande sempre a primeira mensagem completa** em `mensagem_inicial`: a comparação ignora acento e
+maiúscula, mas precisa do texto que a pessoa enviou.
+
+**Plataforma:** cada página é anunciada por uma plataforma (busca e apreensão no Meta; site
+Jurisoft e LP de imobiliário no Google Ads). Quando você não informa `plataforma`, o CRM usa a plataforma da
+página, definida em Configurações. Se souber a plataforma de verdade (a pessoa contou), informe:
+o valor enviado sempre prevalece. `GET /opcoes → plataforma_por_pagina` mostra o que está em vigor.
+
+### 2. A equipe respondeu pela primeira vez
+
+```http
+PATCH /leads/12
+{ "primeiro_atendimento_em": "agora" }
+```
+
+### 3. Triagem
+
+```http
+PATCH /leads/12
+{ "qualificado": true }
+```
+
+ou, se não for caso do escritório:
+
+```http
+PATCH /leads/12
+{ "motivo_desqualificacao": "fora_da_regiao" }
+```
+
+(Informar o motivo já marca `qualificado: false`.)
+
+### 4. Consulta
+
+```http
+PATCH /leads/12
+{ "consulta_agendada_para": "2026-10-20T14:00" }
+```
+
+Depois: `{ "compareceu": true }` ou `{ "compareceu": false }`.
+
+### 5. Desfecho
+
+Fechou:
+
+```http
+PATCH /leads/12
+{ "contrato_em": "agora", "honorarios_iniciais": 3500, "exito_estimado": 2000 }
+```
+
+`exito_estimado` só quando o contrato tiver honorários de êxito; senão, não envie.
+
+Não fechou:
+
+```http
+PATCH /leads/12
+{ "motivo_perda": "sem_resposta" }
+```
+
+Para reabrir um lead perdido: `{ "perdido_em": null }`.
+
+---
+
+## Campos personalizados
+
+O administrador pode criar campos novos em **Configurações**. Eles aparecem em
+`GET /opcoes → campos_personalizados`, com o código (`chave`), o tipo e, nas listas, as opções
+aceitas. Envie pelo código, solto ou dentro de `extras`:
+
+```http
+PATCH /leads/12
+{ "tipo_de_veiculo": "moto" }
+```
+
+ou `{ "extras": { "tipo_de_veiculo": "moto" } }`. Na leitura, eles vêm em `lead.extras`. Valor
+vazio (`null` ou `""`) apaga o campo. Para filtrar: `GET /leads?tipo_de_veiculo=moto`.
+
+As listas do sistema (área, motivos, canal...) também podem ganhar opções novas. **Consulte
+`GET /opcoes` em vez de fixar os valores no código da agente.** Opção desativada é recusada em
+lead novo.
+
+## Rotas
+
+| Método e rota | Permissão | O que faz |
+|---|---|---|
+| `GET /status` | qualquer chave | Testa a chave |
+| `GET /opcoes` | qualquer chave | Valores aceitos em cada lista, campos personalizados, etapas, frases de origem e plataforma de cada página |
+| `POST /leads` | `leads:escrever` | Cria (ou devolve o existente) |
+| `PATCH /leads/{id}` | `leads:escrever` | Altera só os campos enviados |
+| `GET /leads/{id}` | `leads:ler` | Um lead |
+| `GET /leads?...` | `leads:ler` | Lista. Filtros: `telefone`, `etapa`, `area`, `plataforma`, `desde`, `ate`, `busca`, `pagina`, `por_pagina` (máx. 100) |
+
+Exemplo, para achar o lead de quem voltou a escrever:
+`GET /leads?telefone=22999998888`
+
+A **exclusão a pedido (LGPD)** não está na API. É feita pelo administrador no painel, porque
+apaga os dados de forma definitiva.
+
+---
+
+## Campos
+
+| Campo | Tipo | Observação |
+|---|---|---|
+| `nome` | texto | |
+| `telefone` | texto | Qualquer formato. Guardado só com dígitos e DDI 55 |
+| `entrada_em` | data | Padrão: agora. Não pode estar no futuro |
+| `canal` | lista | `whatsapp` (padrão), `ligacao`, `formulario`, `presencial`, `outro` |
+| `plataforma` | lista | `google`, `meta`, `organico`, `indicacao`, `outra`. Deduzida da `utm_source` quando houver |
+| `pagina` | lista | Inicial: `busca-e-apreensao`, `conta-bloqueada`, `criminal`, `entrada`, `jurisoft`, `imobiliario`. Editável |
+| `area` | lista | Inicial: `busca_apreensao`, `conta_bloqueada`, `criminal`, `imobiliario`, `outra`. Editável: consulte `/opcoes` |
+| `utm_source` … `utm_term` | texto | Quando conhecidos |
+| `campanha`, `conjunto`, `anuncio` | texto | Nome ou ID na plataforma |
+| `ref` | texto | Código de rastreio (reservado, ver DECISOES.md) |
+| `referencia_externa` | texto | ID na origem. Só na criação. Impede duplicidade |
+| `primeiro_atendimento_em` | data | Primeira resposta humana |
+| `qualificado` | sim/não | |
+| `motivo_desqualificacao` | lista | Inicial: `area_nao_atendida`, `fora_da_regiao`, `so_informacao`, `sem_condicao_financeira`, `contato_invalido`, `duplicado`, `outro`. Editável |
+| `consulta_agendada_para` | data | |
+| `compareceu` | sim/não | Exige consulta agendada |
+| `contrato_em` | data | Marca como qualificado automaticamente |
+| `honorarios_iniciais` | reais | Exige `contrato_em` |
+| `exito_estimado` | reais | Opcional. Exige `contrato_em` |
+| `motivo_perda` | lista | Inicial: `sem_resposta`, `honorarios`, `outro_advogado`, `desistiu`, `resolveu_sozinho`, `outro`. Editável. Registra `perdido_em` |
+| `perdido_em` | data | `null` reabre o lead |
+
+**Etapa** (calculada, só leitura): `novo` → `em_atendimento` → `qualificado` →
+`consulta_agendada` → `consulta_realizada` → `contrato`. Saídas: `desqualificado`,
+`nao_compareceu`, `perdido`.
+
+## Erros
+
+| Código | `erro` | Quando |
+|---|---|---|
+| 401 | `chave_invalida` | Chave ausente, errada ou revogada |
+| 403 | `sem_permissao` | A chave não tem a permissão da rota |
+| 404 | `nao_encontrado` | Lead ou rota inexistente |
+| 422 | `dados_invalidos` | Campo desconhecido, valor fora da lista ou combinação incoerente. A `mensagem` explica em português |
