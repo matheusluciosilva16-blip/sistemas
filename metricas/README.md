@@ -12,7 +12,7 @@ senha. A Naia (e qualquer outra integração) alimenta o CRM por **chave de API*
 | # | Etapa | Situação |
 |---|---|---|
 | 1 | Base: login, equipe e chaves de API | ✅ pronta |
-| 2 | CRM: registro de leads e API para a Naia | a fazer |
+| 2 | CRM: registro de leads e API para a Naia | ✅ pronta |
 | 3 | Importação de CSV do Google Ads e do Meta Ads | a fazer |
 | 4 | CAC, ROAS e painel com funil | a fazer |
 | 5 | Diagnóstico automático | a fazer |
@@ -94,6 +94,23 @@ Pronto. A tela de primeiro acesso deixa de existir assim que a sua conta é cria
    A resposta esperada é `{"ok":true,"chave":"Naia",...}`.
 6. **Revogar** a chave de teste e repetir o comando: agora deve responder `chave_invalida`.
 
+## Como testar a etapa 2 (CRM)
+
+1. **Leads → + Novo lead:** cadastre um lead de teste só com nome e telefone. Ele aparece como
+   *Novo*, e o Painel mostra "1 lead aguardando o primeiro atendimento".
+2. Abra o lead e toque em **Registrar 1º atendimento agora**. A lista passa a mostrar o tempo
+   de resposta.
+3. Escolha um **motivo de desqualificação** e salve: a etapa vira *Desqualificado* sozinha.
+4. Tente cadastrar **o mesmo telefone de novo**: o sistema abre o lead existente em vez de
+   duplicar.
+5. **Pela Naia:** entregue a ela o arquivo [`docs/API.md`](docs/API.md) e a chave. Peça que
+   crie um lead de teste com a frase de uma das páginas do site e confira, no painel, que a
+   página e a área vieram preenchidas.
+6. **Excluir a pedido (LGPD):** no fim da tela do lead (só o administrador vê), digite
+   EXCLUIR. Nome e telefone somem e os números continuam.
+7. Apague os leads de teste dessa forma antes de começar a usar de verdade, ou peça ao Claude
+   para limpar o banco.
+
 ---
 
 ## Segurança e LGPD
@@ -104,8 +121,13 @@ Pronto. A tela de primeiro acesso deixa de existir assim que a sua conta é cria
   criação.
 - **Cinco tentativas de senha erradas** em 15 minutos bloqueiam o login por 15 minutos.
 - **Desativar uma pessoa** encerra todas as sessões dela na hora.
-- **Auditoria:** quem entrou, quem criou ou revogou chave, quem adicionou ou desativou pessoa.
-  Não registra dado de lead.
+- **Auditoria:** quem entrou, quem criou ou revogou chave, quem adicionou ou desativou pessoa,
+  quem criou, alterou ou anonimizou cada lead. Registra só o número do lead e o nome dos
+  campos alterados, nunca o conteúdo.
+- **CRM sem campo de observação.** Não há onde escrever detalhes do caso, e os motivos são
+  listas fechadas. A API recusa qualquer campo fora da lista.
+- **Exclusão a pedido:** apaga nome e telefone de forma definitiva e mantém os números, sem
+  identificar a pessoa.
 - **Nenhum segredo vai para o GitHub.** O `.env` e o `.dev.vars` estão no `.gitignore`. A
   `CHAVE_INSTALACAO` vive só no Cloudflare.
 - O repositório `sistemas` é **público**. O código pode ser visto, e por isso não tem segredo
@@ -120,7 +142,7 @@ cd metricas
 npm install
 echo 'CHAVE_INSTALACAO=qualquer-coisa-local' > .dev.vars
 npm run dev       # sobe em http://localhost:8787 com banco local
-npm run testar    # testes de segurança e de escape de HTML
+npm run testar    # testes de segurança, escape de HTML e regras do CRM
 ```
 
 | Pasta | O que tem |
@@ -130,6 +152,7 @@ npm run testar    # testes de segurança e de escape de HTML
 | `src/lib/` | Segurança, sessões e chaves, HTML com escape, layout |
 | `migrations/` | Estrutura do banco. **Nunca edite uma migração já publicada**: crie a próxima (`0002_...sql`) |
 | `testes/` | Testes automatizados |
+| `docs/API.md` | Guia da API para a Naia e outras integrações |
 | `DECISOES.md` | Por que as coisas são como são |
 
 Stack: Cloudflare Workers + D1 (SQLite) + [Hono](https://hono.dev). Telas montadas no

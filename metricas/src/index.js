@@ -12,6 +12,7 @@ import entrada from './rotas/entrada.js';
 import equipe from './rotas/equipe.js';
 import chaves from './rotas/chaves.js';
 import api from './rotas/api.js';
+import leads from './rotas/leads.js';
 
 const app = new Hono();
 
@@ -44,8 +45,11 @@ app.route('/', entrada);
 // Daqui para baixo, só com login.
 app.use('*', exigirLogin);
 
-app.get('/painel', (c) => {
+app.get('/painel', async (c) => {
   const usuario = c.get('usuario');
+  const aguardando = await c.env.DB.prepare(
+    "SELECT COUNT(*) AS n FROM leads_com_etapa WHERE etapa = 'novo' AND anonimizado_em IS NULL"
+  ).first('n');
   return c.html(
     pagina({
       titulo: 'Painel',
@@ -53,12 +57,16 @@ app.get('/painel', (c) => {
       atual: '/painel',
       conteudo: html`
         <h1>Olá, ${usuario.nome.split(' ')[0]}</h1>
-        <div class="aviso ouro">O sistema está em construção. Esta é a <strong>etapa 1</strong>: acesso da equipe e chaves de API.</div>
+        ${aguardando
+          ? html`<a class="aviso ouro" style="display:block;text-decoration:none" href="/leads?etapa=novo">
+              <strong>${aguardando} lead(s) aguardando o primeiro atendimento →</strong></a>`
+          : ''}
+        <div class="aviso ouro">O sistema está em construção. Já funcionam: acesso da equipe, chaves de API e o <strong>CRM</strong> (etapa 2).</div>
         <div class="card">
           <h2 style="margin-top:0">Etapas</h2>
           <ol>
-            <li><strong>Base: login, equipe e chaves de API</strong> ✓</li>
-            <li>CRM: registro de leads e API para a Naia</li>
+            <li>Base: login, equipe e chaves de API ✓</li>
+            <li><strong>CRM: registro de leads e API para a Naia</strong> ✓</li>
             <li>Importação de CSV do Google Ads e do Meta Ads</li>
             <li>CAC, ROAS e painel com funil</li>
             <li>Diagnóstico automático</li>
@@ -70,6 +78,7 @@ app.get('/painel', (c) => {
   );
 });
 
+app.route('/', leads);
 app.route('/', equipe);
 app.route('/', chaves);
 

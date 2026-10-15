@@ -63,7 +63,7 @@ th{color:var(--fraco);font-weight:600;font-size:.8rem;text-transform:uppercase;l
  * @param {string} [op.atual]  caminho da página atual, para destacar no menu
  */
 export function pagina({ titulo, conteudo, usuario, atual }) {
-  const itens = [['/painel', 'Painel']];
+  const itens = [['/painel', 'Painel'], ['/leads', 'Leads']];
   if (usuario?.papel === 'admin') itens.push(['/equipe', 'Equipe'], ['/chaves', 'Chaves de API']);
   itens.push(['/conta', 'Minha conta']);
 
