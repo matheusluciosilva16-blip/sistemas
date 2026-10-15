@@ -52,7 +52,7 @@ ela não é gravada. A resposta diz o que foi reconhecido:
 ```
 
 As frases ficam em **Configurações → Frases de origem do WhatsApp** e podem mudar. A lista em
-vigor está em `GET /opcoes → frases_de_origem`. As iniciais, das landing pages:
+vigor está em `GET /opcoes → frases_de_origem`. As iniciais:
 
 | Frase do site (trecho) | `pagina` | `area` |
 |---|---|---|
@@ -60,9 +60,10 @@ vigor está em `GET /opcoes → frases_de_origem`. As iniciais, das landing page
 | Tive valores bloqueados judicialmente na minha conta | `conta-bloqueada` | `conta_bloqueada` |
 | Preciso de orientação sobre uma situação criminal urgente | `criminal` | `criminal` |
 | Gostaria de orientação jurídica | `entrada` | *(não define)* |
+| Tenho uma questão sobre imóvel | `imobiliario` | `imobiliario` |
 
-Também existem as páginas `jurisoft` (site Jurisoft) e `imobiliario` (LP de imobiliário), as
-duas no Google Ads. As frases delas são cadastradas em Configurações.
+Também existe a página `jurisoft` (site Jurisoft, Google Ads), com a frase a cadastrar em
+Configurações.
 
 **Mande sempre a primeira mensagem completa** em `mensagem_inicial`: a comparação ignora acento e
 maiúscula, mas precisa do texto que a pessoa enviou.

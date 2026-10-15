@@ -67,10 +67,10 @@ resumida abaixo.
 
 ## Pontos já levantados para as próximas etapas
 
-- **Frases do Jurisoft e da LP de imobiliário: pendentes.** Não foi possível abrir o site do
-  Jurisoft a partir do ambiente de desenvolvimento (o domínio não respondeu), e a LP de
-  imobiliário não está no repositório do site. Até a frase de cada uma ser cadastrada, os leads
-  delas entram sem página e sem plataforma, e ficam fora do CAC.
+- **Frase da LP de imobiliário: cadastrada** ("Tenho uma questão sobre imóvel", informada pelo
+  cliente). **Frase do site Jurisoft: pendente.** Não foi possível abrir o site a partir do
+  ambiente de desenvolvimento. Até ser cadastrada em Configurações, os leads do Jurisoft entram
+  sem página e sem plataforma, e ficam fora do CAC.
 
 - **Se Google e Meta passarem a anunciar a mesma página**, a frase do WhatsApp não distingue
   as duas. Opções: (a) um código curto na mensagem, que **altera a frase exata escrita pelo

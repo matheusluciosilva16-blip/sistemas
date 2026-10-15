@@ -69,11 +69,13 @@ export const FRASES_INICIAIS = [
   { frase: 'Tive valores bloqueados judicialmente na minha conta', pagina: 'conta-bloqueada', area: 'conta_bloqueada' },
   { frase: 'Preciso de orientação sobre uma situação criminal urgente', pagina: 'criminal', area: 'criminal' },
   { frase: 'Gostaria de orientação jurídica', pagina: 'entrada', area: null },
+  // LP de imobiliário (Google Ads), fora do repositório do site. Informada pelo cliente em 15/10/2026.
+  { frase: 'Tenho uma questão sobre imóvel', pagina: 'imobiliario', area: 'imobiliario' },
 ];
 
 // Sobe quando OPCOES_INICIAIS ou FRASES_INICIAIS ganham itens: o sistema grava só o que falta,
 // sem desfazer o que foi renomeado ou desativado em Configurações.
-const VERSAO_DADOS_INICIAIS = 3;
+const VERSAO_DADOS_INICIAIS = 4;
 
 /** Texto comparável: sem acento, minúsculo, espaços simples. */
 export const comparavel = (t) =>

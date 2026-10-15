@@ -129,8 +129,8 @@ Pronto. A tela de primeiro acesso deixa de existir assim que a sua conta é cria
    deixe essa página em "Não se sabe".
 5. **Frases de origem do WhatsApp:** cada página manda uma frase pronta no WhatsApp, e é por ela
    que o sistema sabe de onde o lead veio. As frases das suas landing pages já estão cadastradas.
-   **Cadastre a frase do botão de WhatsApp do site Jurisoft e a da LP de imobiliário**, escolhendo
-   a página e a área de cada uma. Basta um trecho que só exista naquela frase.
+   A da LP de imobiliário também. **Falta cadastrar a frase do botão de WhatsApp do site
+   Jurisoft**, escolhendo a página e a área. Basta um trecho que só exista naquela frase.
 
 ## Como testar as métricas
 

@@ -146,3 +146,10 @@ test('frase de origem: ignora acento, maiúscula e espaços; a mais específica 
   assert.equal(origemPelaMensagem(cfg, 'Frase desativada qualquer'), null);
   assert.equal(origemPelaMensagem(cfg, ''), null);
 });
+
+test('frase da LP de imobiliário vem cadastrada', async () => {
+  const { origemPelaMensagem, configPadrao } = await import('../src/lib/config.js');
+  const o = origemPelaMensagem(configPadrao(), 'Olá! Tenho uma questão sobre imóvel e gostaria de orientação.');
+  assert.equal(o.pagina, 'imobiliario');
+  assert.equal(o.area, 'imobiliario');
+});
