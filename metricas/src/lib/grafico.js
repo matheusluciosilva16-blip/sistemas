@@ -6,9 +6,9 @@
 
 import { html, cru, escapar } from './html.js';
 
-const COR = '#FDBE3F'; // dourado da marca: 10,9:1 sobre o marinho, acima do mínimo de 3:1 para marcas
-const GRADE = '#334155';
-const TEXTO = '#94A3B8';
+const COR = '#FDBE3F'; // dourado da marca: 11,3:1 sobre o card preto, acima do mínimo de 3:1 para marcas
+const GRADE = '#333333';
+const TEXTO = '#A3A3A3';
 
 /** Arredonda o máximo para um valor "redondo" (1, 2, 2.5, 5 × 10^n). */
 function tetoRedondo(v) {

@@ -1,7 +1,8 @@
 // Moldura comum de todas as telas: cabeçalho, menu e estilo.
-// Segue o design das landing pages (repositório do site, specs/design.md):
-// mesmas fontes (Noto Serif 700 nos títulos, Noto Sans no resto, arquivos idênticos),
-// mesmos tokens de cor, raios e símbolo da logo no cabeçalho.
+// Segue o design das landing pages (repositório do site, specs/design.md): mesmas fontes
+// (Noto Serif 700 nos títulos, Noto Sans no resto, arquivos idênticos), dourado, raios e símbolo
+// da logo. Diferença pedida pelo cliente em 15/10/2026: o fundo é o PRETO da logo (#030303),
+// não o marinho das LPs. Contraste medido: menor caso 6,8:1 (texto fraco sobre card).
 // Diferença deliberada: o verde #25D366 é exclusivo do WhatsApp nas LPs, então aqui
 // a ação principal é o dourado sólido e a secundária o dourado contornado.
 
@@ -13,8 +14,9 @@ const ESTILO = `
 @font-face{font-family:'Noto Sans';font-weight:700;font-display:swap;src:url(/fontes/noto-sans-latin-700-normal.woff2) format('woff2')}
 @font-face{font-family:'Noto Serif';font-weight:700;font-display:swap;src:url(/fontes/noto-serif-latin-700-normal.woff2) format('woff2')}
 :root{
-  --navy:#0F172A;--deep:#0B1220;--surface:#1E293B;--surface2:#293548;--line:#334155;
-  --ink:#F8FAFC;--body:#CBD5E1;--muted:#94A3B8;
+  --navy:#030303;--deep:#000000;--surface:#121212;--surface2:#1C1C1C;--line:#333333;
+  --ink:#F8FAFC;--body:#D4D4D4;--muted:#A3A3A3;
+  --texto-no-ouro:#0F172A;
   --gold:#FDBE3F;--golddeep:#E3A92F;--goldsoft:rgb(253 190 63 / .12);--goldline:rgb(253 190 63 / .28);
   --ok:#4ADE80;--erro:#F87171;
   --display:'Noto Serif',Georgia,'Times New Roman',serif;
@@ -56,7 +58,7 @@ input::placeholder{color:var(--muted)}
 :focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 
 .botao{display:inline-flex;align-items:center;justify-content:center;min-height:52px;padding:0 24px;border-radius:10px;
-  border:1.5px solid var(--gold);background:var(--gold);color:var(--navy);font:700 1rem/1 var(--ui);letter-spacing:.02em;
+  border:1.5px solid var(--gold);background:var(--gold);color:var(--texto-no-ouro);font:700 1rem/1 var(--ui);letter-spacing:.02em;
   cursor:pointer;margin-top:20px;text-decoration:none;transition:background-color .18s ease-out,transform .18s ease-out}
 .botao.sec{background:transparent;color:var(--gold)}
 .botao.mini{min-height:44px;padding:0 16px;margin:0;font-size:.9rem}
@@ -122,7 +124,7 @@ export function pagina({ titulo, conteudo, usuario, atual }) {
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
-<meta name="theme-color" content="#0F172A">
+<meta name="theme-color" content="#030303">
 <title>${titulo} · Métricas</title>
 <link rel="preload" href="/fontes/noto-sans-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="/fontes/noto-serif-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
