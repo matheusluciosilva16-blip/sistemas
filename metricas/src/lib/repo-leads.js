@@ -108,6 +108,16 @@ export async function atualizarLead(db, id, dados, ator, config) {
  * Exclusão a pedido do titular (LGPD). Apaga o que identifica a pessoa e mantém os números
  * (datas, etapa, valores, campanha), para que o CAC e o histórico das campanhas não mudem.
  */
+/**
+ * Apaga o lead de vez. Só para registro criado por engano ou de teste: diferente da
+ * anonimização, ele some também das métricas. A auditoria guarda só o número do lead.
+ */
+export async function apagarLead(db, id, ator) {
+  const { meta } = await db.prepare('DELETE FROM leads WHERE id = ?').bind(id).run();
+  if (meta.changes) await auditar(db, { atorTipo: ator.tipo, atorId: ator.id, acao: 'lead_apagado', detalhe: `lead=${id}` });
+  return meta.changes > 0;
+}
+
 export async function anonimizarLead(db, id, ator, config) {
   const lead = await buscarLead(db, id);
   if (!lead || lead.anonimizado_em) return false;

@@ -6,7 +6,7 @@ import { html, dataHora } from '../lib/html.js';
 import { pagina } from '../lib/layout.js';
 import { ETAPAS, ErroDeDados, valorCampoData, telefoneLegivel, lerData, reais } from '../lib/leads.js';
 import { carregarConfig, opcoesParaSelecao, rotulo, SECOES } from '../lib/config.js';
-import { criarLead, atualizarLead, buscarLead, listarLeads, anonimizarLead } from '../lib/repo-leads.js';
+import { criarLead, atualizarLead, buscarLead, listarLeads, anonimizarLead, apagarLead } from '../lib/repo-leads.js';
 import { exigirAdmin } from '../lib/permissoes.js';
 
 const rotas = new Hono();
@@ -109,7 +109,7 @@ rotas.get('/leads', async (c) => {
   const r = await listarLeads(c.env.DB, filtro);
   const paginas = Math.max(Math.ceil(r.total / r.porPagina), 1);
   const linkPagina = (n) => `/leads?${new URLSearchParams({ ...q, pagina: n })}`;
-  const filtrando = Object.entries(q).some(([k, v]) => v && k !== 'pagina');
+  const filtrando = Object.entries(q).some(([k, v]) => v && !['pagina', 'apagado'].includes(k));
 
   return c.html(
     pagina({
@@ -121,6 +121,7 @@ rotas.get('/leads', async (c) => {
         <h1>Leads</h1>
         <a class="botao" href="/leads/novo" style="margin:0 0 16px">+ Novo lead</a>
         ${erro ? html`<div class="aviso erro" role="alert">${erro}</div>` : ''}
+        ${q.apagado ? html`<div class="aviso ok" role="status">Lead apagado.</div>` : ''}
         <details class="card" ${filtrando ? html`open` : ''}>
           <summary style="font-weight:600;color:var(--ink)">Filtrar</summary>
           <form method="get" action="/leads">
@@ -271,6 +272,16 @@ async function telaLead(c, lead, { erro = '', ok = '' } = {}) {
             <input id="confirmar" name="confirmar" autocomplete="off" required>
             <button class="botao sec" type="submit">Apagar dados pessoais</button>
           </form>`
+        : ''}
+      ${!novo && eu.papel === 'admin'
+        ? html`<h2>Apagar lead criado por engano</h2>
+          <form method="post" action="/leads/${lead.id}/apagar" class="card">
+            <p>Remove o lead por completo, <strong>inclusive das métricas</strong>. Use só para teste, duplicidade ou
+            cadastro errado. Para atender um pedido de exclusão de um cliente real, use a opção acima, que preserva os números.</p>
+            <label for="confirmar-apagar">Para confirmar, digite APAGAR</label>
+            <input id="confirmar-apagar" name="confirmar" autocomplete="off" required>
+            <button class="botao sec" type="submit">Apagar lead</button>
+          </form>`
         : ''}`,
   });
 }
@@ -346,6 +357,18 @@ rotas.post('/leads/:id{[0-9]+}/atendimento-agora', async (c) => {
     return c.html(await telaLead(c, lead, { erro: e.message }), 422);
   }
   return c.redirect(`/leads/${id}?ok=salvo`);
+});
+
+rotas.post('/leads/:id{[0-9]+}/apagar', exigirAdmin, async (c) => {
+  const id = Number(c.req.param('id'));
+  const lead = await buscarLead(c.env.DB, id);
+  if (!lead) return c.notFound();
+  const form = await c.req.parseBody();
+  if (String(form.confirmar || '').trim().toUpperCase() !== 'APAGAR') {
+    return c.html(await telaLead(c, lead, { erro: 'Confirmação incorreta. Digite APAGAR para remover o lead.' }), 400);
+  }
+  await apagarLead(c.env.DB, id, ator(c));
+  return c.redirect('/leads?apagado=1');
 });
 
 rotas.post('/leads/:id{[0-9]+}/anonimizar', exigirAdmin, async (c) => {
