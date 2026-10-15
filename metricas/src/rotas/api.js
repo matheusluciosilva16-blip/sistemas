@@ -4,8 +4,8 @@
 
 import { Hono } from 'hono';
 import { exigirChave } from '../lib/permissoes.js';
-import { ETAPAS, FRASES_DO_SITE, ErroDeDados, paraApi, lerTelefone, lerData } from '../lib/leads.js';
-import { carregarConfig, LISTAS_DO_SISTEMA, TIPOS_DE_CAMPO, campoPersonalizado, plataformaDaPagina } from '../lib/config.js';
+import { ETAPAS, ErroDeDados, paraApi, lerTelefone, lerData } from '../lib/leads.js';
+import { carregarConfig, LISTAS_DO_SISTEMA, TIPOS_DE_CAMPO, campoPersonalizado, plataformaDaPagina, origemPelaMensagem } from '../lib/config.js';
 import { criarLead, atualizarLead, buscarLead, listarLeads } from '../lib/repo-leads.js';
 
 const api = new Hono();
@@ -28,15 +28,6 @@ async function corpoJson(c) {
 
 const ator = (c) => ({ tipo: 'chave', id: c.get('chave').id });
 
-/**
- * A primeira mensagem do WhatsApp diz de qual página do site a pessoa veio.
- * A mensagem é usada só para essa comparação e NÃO é gravada (LGPD).
- */
-function origemPelaMensagem(mensagem) {
-  const texto = String(mensagem || '').toLowerCase();
-  return FRASES_DO_SITE.find((f) => texto.includes(f.frase.toLowerCase())) || null;
-}
-
 /** Teste de conexão: confirma que a chave funciona e mostra as permissões dela. */
 api.get('/status', exigirChave(), (c) => {
   const chave = c.get('chave');
@@ -50,7 +41,7 @@ api.get('/opcoes', exigirChave(), async (c) => {
   return c.json({
     ...Object.fromEntries(Object.keys(LISTAS_DO_SISTEMA).map((campo) => [campo, ativas(campo)])),
     etapa: ETAPAS,
-    frases_do_site: FRASES_DO_SITE,
+    frases_de_origem: config.frases.filter((f) => f.ativo).map(({ frase, pagina, area }) => ({ frase, pagina, area })),
     plataforma_por_pagina: Object.fromEntries((config.listas.pagina || []).map((o) => [o.valor, plataformaDaPagina(config, o.valor)])),
     campos_personalizados: config.campos
       .filter((cp) => cp.ativo)
@@ -68,10 +59,14 @@ api.get('/opcoes', exigirChave(), async (c) => {
 api.post('/leads', exigirChave('leads:escrever'), async (c) => {
   const { mensagem_inicial, ...dados } = await corpoJson(c);
   const config = await carregarConfig(c.env.DB);
-  const origem = origemPelaMensagem(mensagem_inicial);
+  // A primeira mensagem do WhatsApp diz de qual página a pessoa veio (frases em Configurações).
+  // Ela é usada só para essa comparação e NÃO é gravada (LGPD).
+  const origem = origemPelaMensagem(config, mensagem_inicial);
+  // Só usa a página e a área da frase se essas opções ainda estiverem ativas.
+  const ativa = (campo, v) => v && (config.listas[campo] || []).some((o) => o.valor === v && o.ativo);
   if (origem) {
-    dados.pagina ??= origem.pagina;
-    if (origem.area) dados.area ??= origem.area;
+    if (ativa('pagina', origem.pagina)) dados.pagina ??= origem.pagina;
+    if (ativa('area', origem.area)) dados.area ??= origem.area;
     // Plataforma não informada → a plataforma que anuncia aquela página (Configurações).
     const padrao = plataformaDaPagina(config, dados.pagina);
     if (!dados.plataforma && !dados.utm_source && padrao) dados.plataforma = padrao;

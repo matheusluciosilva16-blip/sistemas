@@ -28,8 +28,21 @@ export const OPCOES_INICIAIS = {
     indicacao: 'Indicação',
     outra: 'Outra',
   },
-  pagina: { 'busca-e-apreensao': 'Busca e apreensão', 'conta-bloqueada': 'Conta bloqueada', criminal: 'Criminal', entrada: 'Página de entrada' },
-  area: { busca_apreensao: 'Busca e apreensão de veículo', conta_bloqueada: 'Conta bloqueada', criminal: 'Criminal', outra: 'Outra área' },
+  pagina: {
+    'busca-e-apreensao': 'Busca e apreensão',
+    'conta-bloqueada': 'Conta bloqueada',
+    criminal: 'Criminal',
+    entrada: 'Página de entrada',
+    jurisoft: 'Site Jurisoft (matheuslucio.jurisoft.site)',
+    imobiliario: 'LP de imobiliário',
+  },
+  area: {
+    busca_apreensao: 'Busca e apreensão de veículo',
+    conta_bloqueada: 'Conta bloqueada',
+    criminal: 'Criminal',
+    imobiliario: 'Direito imobiliário',
+    outra: 'Outra área',
+  },
   motivo_desqualificacao: {
     area_nao_atendida: 'Assunto que o escritório não atende',
     fora_da_regiao: 'Fora da região atendida',
@@ -48,6 +61,34 @@ export const OPCOES_INICIAIS = {
     outro: 'Outro',
   },
 };
+
+// Frase de WhatsApp de cada landing page → página e área. Valores iniciais; editáveis em Configurações.
+// Sincronizadas com o bloco "msgGeral" de cada página no repositório do site.
+export const FRASES_INICIAIS = [
+  { frase: 'Estou com um problema de busca e apreensão no meu veículo', pagina: 'busca-e-apreensao', area: 'busca_apreensao' },
+  { frase: 'Tive valores bloqueados judicialmente na minha conta', pagina: 'conta-bloqueada', area: 'conta_bloqueada' },
+  { frase: 'Preciso de orientação sobre uma situação criminal urgente', pagina: 'criminal', area: 'criminal' },
+  { frase: 'Gostaria de orientação jurídica', pagina: 'entrada', area: null },
+];
+
+// Sobe quando OPCOES_INICIAIS ou FRASES_INICIAIS ganham itens: o sistema grava só o que falta,
+// sem desfazer o que foi renomeado ou desativado em Configurações.
+const VERSAO_DADOS_INICIAIS = 3;
+
+/** Texto comparável: sem acento, minúsculo, espaços simples. */
+export const comparavel = (t) =>
+  String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
+
+/** Página e área de origem pela primeira mensagem. A frase mais longa que aparecer na mensagem vence. */
+export function origemPelaMensagem(config, mensagem) {
+  const texto = comparavel(mensagem);
+  if (!texto) return null;
+  return (
+    config.frases
+      .filter((f) => f.ativo && texto.includes(comparavel(f.frase)))
+      .sort((a, b) => b.frase.length - a.frase.length)[0] || null
+  );
+}
 
 export const TIPOS_DE_CAMPO = {
   lista: 'Lista de opções (classificação)',
@@ -102,33 +143,47 @@ export function chaveValida(chave) {
  * Na primeira execução grava as opções iniciais.
  */
 export async function carregarConfig(db) {
-  let [{ results: opcoes }, { results: campos }, { results: ajustes }] = await db.batch([
+  const consultas = () => [
     db.prepare('SELECT campo, valor, rotulo, ordem, ativo FROM opcoes ORDER BY campo, ordem, rotulo'),
     db.prepare('SELECT chave, rotulo, tipo, secao, na_lista, ativo, ordem FROM campos_personalizados ORDER BY ordem, rotulo'),
     db.prepare('SELECT chave, valor FROM ajustes'),
-  ]);
+    db.prepare('SELECT id, frase, pagina, area, ativo FROM frases_origem ORDER BY id'),
+  ];
+  let [{ results: opcoes }, { results: campos }, { results: ajustes }, { results: frases }] = await db.batch(consultas());
 
-  if (!opcoes.length) {
+  const versao = Number(ajustes.find((a) => a.chave === 'versao_dados_iniciais')?.valor || 0);
+  if (versao < VERSAO_DADOS_INICIAIS) {
+    // INSERT OR IGNORE: só grava o que ainda não existe. Renomeações e desativações ficam como estão.
     const inserts = [];
     for (const [campo, valores] of Object.entries(OPCOES_INICIAIS)) {
       Object.entries(valores).forEach(([valor, rotulo], i) =>
         inserts.push(db.prepare('INSERT OR IGNORE INTO opcoes (campo, valor, rotulo, ordem) VALUES (?, ?, ?, ?)').bind(campo, valor, rotulo, i))
       );
     }
+    for (const f of FRASES_INICIAIS) {
+      inserts.push(
+        db.prepare('INSERT OR IGNORE INTO frases_origem (frase, pagina, area, criado_em) VALUES (?, ?, ?, ?)').bind(f.frase, f.pagina, f.area, Date.now())
+      );
+    }
+    inserts.push(
+      db.prepare("INSERT INTO ajustes (chave, valor) VALUES ('versao_dados_iniciais', ?) ON CONFLICT(chave) DO UPDATE SET valor = excluded.valor")
+        .bind(String(VERSAO_DADOS_INICIAIS))
+    );
     await db.batch(inserts);
-    ({ results: opcoes } = await db.prepare('SELECT campo, valor, rotulo, ordem, ativo FROM opcoes ORDER BY campo, ordem, rotulo').all());
+    [{ results: opcoes }, { results: campos }, { results: ajustes }, { results: frases }] = await db.batch(consultas());
   }
-  return montarConfig(opcoes, campos, ajustes);
+  return montarConfig(opcoes, campos, ajustes, frases);
 }
 
 /** Separado de carregarConfig para os testes montarem uma configuração sem banco. */
-export function montarConfig(opcoes, campos = [], ajustes = []) {
+export function montarConfig(opcoes, campos = [], ajustes = [], frases = []) {
   const listas = {};
   for (const o of opcoes) (listas[o.campo] ??= []).push({ ...o, ativo: !!o.ativo });
   return {
     listas,
     campos: campos.map((c) => ({ ...c, ativo: !!c.ativo, na_lista: !!c.na_lista })),
     ajustes: Object.fromEntries(ajustes.map((a) => [a.chave, a.valor])),
+    frases: frases.map((f) => ({ ...f, ativo: !!f.ativo })),
   };
 }
 
@@ -138,7 +193,7 @@ export function configPadrao() {
   for (const [campo, valores] of Object.entries(OPCOES_INICIAIS)) {
     Object.entries(valores).forEach(([valor, rotulo], i) => opcoes.push({ campo, valor, rotulo, ordem: i, ativo: 1 }));
   }
-  return montarConfig(opcoes);
+  return montarConfig(opcoes, [], [], FRASES_INICIAIS.map((f, i) => ({ id: i + 1, ...f, ativo: 1 })));
 }
 
 /** Rótulo de um valor (mesmo desativado). */

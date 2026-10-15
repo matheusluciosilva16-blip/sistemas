@@ -8,7 +8,7 @@ import { exigirAdmin } from '../lib/permissoes.js';
 import { auditar } from '../lib/acesso.js';
 import {
   carregarConfig, LISTAS_DO_SISTEMA, TIPOS_DE_CAMPO, SECOES, AJUDA_PLATAFORMA_POR_PAGINA,
-  paraIdentificador, chaveValida, opcoesParaSelecao,
+  paraIdentificador, chaveValida, opcoesParaSelecao, comparavel,
 } from '../lib/config.js';
 
 const rotas = new Hono();
@@ -86,6 +86,47 @@ rotas.get('/configuracoes', async (c) => {
               </select>`;
           })}
           <button class="botao mini" type="submit" style="margin-top:16px">Salvar</button>
+        </form>
+
+        <h2 id="frases">Frases de origem do WhatsApp</h2>
+        <p class="fraco">Cada página manda uma frase pronta no WhatsApp. Quando a primeira mensagem do lead contém uma
+        destas frases, o lead entra com a página e a área correspondentes, e com a plataforma que anuncia aquela página.
+        Basta um trecho que só exista naquela frase.</p>
+        ${config.frases.map(
+          (f) => html`<form method="post" action="/configuracoes/frases/editar" class="card" id="frase-${f.id}">
+            <input type="hidden" name="id" value="${f.id}">
+            <p style="margin:0;color:var(--ink)">“${f.frase}”
+              ${f.ativo ? '' : html`<span class="etiqueta off">Desativada</span>`}</p>
+            <div class="grade" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr));margin:0">
+              <div><label for="fp-${f.id}">Página</label>
+                <select id="fp-${f.id}" name="pagina">
+                  <option value="">—</option>
+                  ${Object.entries(opcoesParaSelecao(config, 'pagina', f.pagina)).map(([v, r]) => html`<option value="${v}" ${v === f.pagina ? html`selected` : ''}>${r}</option>`)}
+                </select></div>
+              <div><label for="fa-${f.id}">Área</label>
+                <select id="fa-${f.id}" name="area">
+                  <option value="">Não definir</option>
+                  ${Object.entries(opcoesParaSelecao(config, 'area', f.area)).map(([v, r]) => html`<option value="${v}" ${v === f.area ? html`selected` : ''}>${r}</option>`)}
+                </select></div>
+            </div>
+            <button class="botao sec mini" type="submit" name="acao" value="salvar" style="margin-top:12px">Salvar</button>
+            <button class="botao sec mini" type="submit" name="acao" value="alternar" style="margin-top:12px">${f.ativo ? 'Desativar' : 'Reativar'}</button>
+          </form>`
+        )}
+        <form method="post" action="/configuracoes/frases/adicionar" class="card" id="nova-frase">
+          <h3>Nova frase</h3>
+          <label for="nf-frase">Trecho da mensagem pronta</label>
+          <input id="nf-frase" name="frase" required minlength="10" maxlength="200" placeholder="ex.: Vim pelo site e gostaria de falar sobre">
+          <label for="nf-pagina">Página</label>
+          <select id="nf-pagina" name="pagina" required>
+            ${Object.entries(opcoesParaSelecao(config, 'pagina')).map(([v, r]) => html`<option value="${v}">${r}</option>`)}
+          </select>
+          <label for="nf-area">Área</label>
+          <select id="nf-area" name="area">
+            <option value="">Não definir</option>
+            ${Object.entries(opcoesParaSelecao(config, 'area')).map(([v, r]) => html`<option value="${v}">${r}</option>`)}
+          </select>
+          <button class="botao mini" type="submit" style="margin-top:16px">Adicionar frase</button>
         </form>
 
         <h2 id="listas">Listas de classificação</h2>
@@ -168,6 +209,43 @@ rotas.post('/configuracoes/ajustes', async (c) => {
   if (comandos.length) await c.env.DB.batch(comandos);
   await registrar(c, 'ajuste_alterado', `plataforma por página: ${resumo.join(' ')}`);
   return voltar(c, 'ajustes');
+});
+
+// ---------- Frases de origem ----------
+
+const opcaoValida = (config, campo, v) => !v || (config.listas[campo] || []).some((o) => o.valor === v);
+
+rotas.post('/configuracoes/frases/adicionar', async (c) => {
+  const form = await c.req.parseBody();
+  const config = await carregarConfig(c.env.DB);
+  const frase = String(form.frase || '').trim().replace(/\s+/g, ' ').slice(0, 200);
+  const pagina = String(form.pagina || '');
+  const area = String(form.area || '');
+  if (frase.length < 10) return voltar(c, 'nova-frase', 'A frase precisa ter pelo menos 10 caracteres, para não confundir com mensagens comuns.');
+  if (!pagina || !opcaoValida(config, 'pagina', pagina) || !opcaoValida(config, 'area', area)) return voltar(c, 'nova-frase', 'Página ou área inválida.');
+  if (config.frases.some((f) => comparavel(f.frase) === comparavel(frase))) return voltar(c, 'nova-frase', 'Essa frase já está cadastrada.');
+  await c.env.DB.prepare('INSERT INTO frases_origem (frase, pagina, area, criado_em) VALUES (?, ?, ?, ?)').bind(frase, pagina, area || null, Date.now()).run();
+  await registrar(c, 'frase_criada', `${pagina}: ${frase}`);
+  return voltar(c, 'frases');
+});
+
+rotas.post('/configuracoes/frases/editar', async (c) => {
+  const form = await c.req.parseBody();
+  const config = await carregarConfig(c.env.DB);
+  const id = Number(form.id);
+  const frase = config.frases.find((f) => f.id === id);
+  if (!frase) return voltar(c, 'frases', 'Frase inexistente.');
+  if (form.acao === 'alternar') {
+    await c.env.DB.prepare('UPDATE frases_origem SET ativo = ? WHERE id = ?').bind(frase.ativo ? 0 : 1, id).run();
+    await registrar(c, frase.ativo ? 'frase_desativada' : 'frase_reativada', `id=${id}`);
+    return voltar(c, `frase-${id}`);
+  }
+  const pagina = String(form.pagina || '');
+  const area = String(form.area || '');
+  if (!opcaoValida(config, 'pagina', pagina) || !opcaoValida(config, 'area', area)) return voltar(c, `frase-${id}`, 'Página ou área inválida.');
+  await c.env.DB.prepare('UPDATE frases_origem SET pagina = ?, area = ? WHERE id = ?').bind(pagina || null, area || null, id).run();
+  await registrar(c, 'frase_editada', `id=${id} pagina=${pagina || '-'} area=${area || '-'}`);
+  return voltar(c, `frase-${id}`);
 });
 
 // ---------- Opções de listas ----------

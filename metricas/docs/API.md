@@ -51,15 +51,24 @@ ela não é gravada. A resposta diz o que foi reconhecido:
 { "ja_existia": false, "origem_identificada": "conta-bloqueada", "lead": { "id": 12, "etapa": "novo", ... } }
 ```
 
-| Frase do site (início) | `pagina` | `area` |
+As frases ficam em **Configurações → Frases de origem do WhatsApp** e podem mudar. A lista em
+vigor está em `GET /opcoes → frases_de_origem`. As iniciais, das landing pages:
+
+| Frase do site (trecho) | `pagina` | `area` |
 |---|---|---|
 | Estou com um problema de busca e apreensão no meu veículo | `busca-e-apreensao` | `busca_apreensao` |
 | Tive valores bloqueados judicialmente na minha conta | `conta-bloqueada` | `conta_bloqueada` |
 | Preciso de orientação sobre uma situação criminal urgente | `criminal` | `criminal` |
 | Gostaria de orientação jurídica | `entrada` | *(não define)* |
 
-**Plataforma:** cada página do site é anunciada por uma plataforma (busca e apreensão no Meta,
-a outra campanha no Google Ads). Quando você não informa `plataforma`, o CRM usa a plataforma da
+Também existem as páginas `jurisoft` (site Jurisoft) e `imobiliario` (LP de imobiliário), as
+duas no Google Ads. As frases delas são cadastradas em Configurações.
+
+**Mande sempre a primeira mensagem completa** em `mensagem_inicial`: a comparação ignora acento e
+maiúscula, mas precisa do texto que a pessoa enviou.
+
+**Plataforma:** cada página é anunciada por uma plataforma (busca e apreensão no Meta; site
+Jurisoft e LP de imobiliário no Google Ads). Quando você não informa `plataforma`, o CRM usa a plataforma da
 página, definida em Configurações. Se souber a plataforma de verdade (a pessoa contou), informe:
 o valor enviado sempre prevalece. `GET /opcoes → plataforma_por_pagina` mostra o que está em vigor.
 
@@ -140,7 +149,7 @@ lead novo.
 | Método e rota | Permissão | O que faz |
 |---|---|---|
 | `GET /status` | qualquer chave | Testa a chave |
-| `GET /opcoes` | qualquer chave | Valores aceitos em cada lista, campos personalizados, etapas, frases do site e plataforma de cada página |
+| `GET /opcoes` | qualquer chave | Valores aceitos em cada lista, campos personalizados, etapas, frases de origem e plataforma de cada página |
 | `POST /leads` | `leads:escrever` | Cria (ou devolve o existente) |
 | `PATCH /leads/{id}` | `leads:escrever` | Altera só os campos enviados |
 | `GET /leads/{id}` | `leads:ler` | Um lead |
@@ -163,8 +172,8 @@ apaga os dados de forma definitiva.
 | `entrada_em` | data | Padrão: agora. Não pode estar no futuro |
 | `canal` | lista | `whatsapp` (padrão), `ligacao`, `formulario`, `presencial`, `outro` |
 | `plataforma` | lista | `google`, `meta`, `organico`, `indicacao`, `outra`. Deduzida da `utm_source` quando houver |
-| `pagina` | lista | `busca-e-apreensao`, `conta-bloqueada`, `criminal`, `entrada` |
-| `area` | lista | Inicial: `busca_apreensao`, `conta_bloqueada`, `criminal`, `outra`. Editável: consulte `/opcoes` |
+| `pagina` | lista | Inicial: `busca-e-apreensao`, `conta-bloqueada`, `criminal`, `entrada`, `jurisoft`, `imobiliario`. Editável |
+| `area` | lista | Inicial: `busca_apreensao`, `conta_bloqueada`, `criminal`, `imobiliario`, `outra`. Editável: consulte `/opcoes` |
 | `utm_source` … `utm_term` | texto | Quando conhecidos |
 | `campanha`, `conjunto`, `anuncio` | texto | Nome ou ID na plataforma |
 | `ref` | texto | Código de rastreio (reservado, ver DECISOES.md) |

@@ -21,15 +21,6 @@ export const ETAPAS = {
   perdido: 'Perdido',
 };
 
-// Frase de WhatsApp de cada página do site → página e área.
-// Mantida em sincronia com o repositório do site (bloco "msgGeral" de cada página).
-export const FRASES_DO_SITE = [
-  { frase: 'Estou com um problema de busca e apreensão no meu veículo', pagina: 'busca-e-apreensao', area: 'busca_apreensao' },
-  { frase: 'Tive valores bloqueados judicialmente na minha conta', pagina: 'conta-bloqueada', area: 'conta_bloqueada' },
-  { frase: 'Preciso de orientação sobre uma situação criminal urgente', pagina: 'criminal', area: 'criminal' },
-  { frase: 'Gostaria de orientação jurídica', pagina: 'entrada', area: null },
-];
-
 // Mesmo telefone dentro desta janela = mesmo lead (não conta duas vezes).
 export const JANELA_DUPLICIDADE = 90 * 24 * 60 * 60 * 1000;
 

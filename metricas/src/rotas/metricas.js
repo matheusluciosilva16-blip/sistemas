@@ -395,7 +395,7 @@ rotas.post('/metricas/importar', exigirAdmin, async (c) => {
 /** Sugestão pelo nome da campanha, só para pré-selecionar. Nada é gravado sem você salvar. */
 function sugerirPagina(nome, config) {
   const n = String(nome).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
-  const regras = [[/busca|apreens|veicul/, 'busca-e-apreensao'], [/bloque|conta|sisbajud/, 'conta-bloqueada'], [/crimin|flagrante|plantao/, 'criminal']];
+  const regras = [[/busca|apreens|veicul/, 'busca-e-apreensao'], [/bloque|conta|sisbajud/, 'conta-bloqueada'], [/crimin|flagrante|plantao/, 'criminal'], [/jurisoft/, 'jurisoft'], [/imobili|imovel|imoveis|usucapiao|aluguel|despejo/, 'imobiliario']];
   const achou = regras.find(([re]) => re.test(n))?.[1];
   return achou && (config.listas.pagina || []).some((o) => o.valor === achou && o.ativo) ? achou : '';
 }

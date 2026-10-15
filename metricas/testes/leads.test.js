@@ -133,3 +133,16 @@ test('identificador de campo novo', () => {
   assert.equal(chaveValida('telefone'), false);
   assert.equal(chaveValida('busca'), false);
 });
+
+test('frase de origem: ignora acento, maiúscula e espaços; a mais específica vence', async () => {
+  const { origemPelaMensagem, montarConfig } = await import('../src/lib/config.js');
+  const cfg = montarConfig([], [], [], [
+    { id: 1, frase: 'Gostaria de orientação jurídica', pagina: 'entrada', area: null, ativo: 1 },
+    { id: 2, frase: 'Gostaria de orientação jurídica sobre conta bloqueada', pagina: 'jurisoft', area: 'conta_bloqueada', ativo: 1 },
+    { id: 3, frase: 'Frase desativada qualquer', pagina: 'criminal', area: null, ativo: 0 },
+  ]);
+  assert.equal(origemPelaMensagem(cfg, 'Olá!  GOSTARIA de orientacao juridica.').pagina, 'entrada');
+  assert.equal(origemPelaMensagem(cfg, 'Olá! Gostaria de orientação jurídica sobre conta bloqueada, por favor').pagina, 'jurisoft');
+  assert.equal(origemPelaMensagem(cfg, 'Frase desativada qualquer'), null);
+  assert.equal(origemPelaMensagem(cfg, ''), null);
+});

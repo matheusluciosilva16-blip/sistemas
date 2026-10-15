@@ -57,7 +57,20 @@ resumida abaixo.
 | **Hook rate e retenção só sobre impressões de anúncios com dados de vídeo.** | Anúncio de imagem derrubaria o hook rate artificialmente. |
 | **Gráficos em SVG gerado no servidor,** uma série por gráfico, com dica nativa e tabela equivalente. | Mantém a página sem JavaScript e com CSP rígida. Investimento e leads em gráficos separados: nunca dois eixos. |
 
+## Páginas fora das landing pages (15/10/2026)
+
+| Decisão | Motivo |
+|---|---|
+| **Google Ads anuncia o site Jurisoft** (`matheuslucio.jurisoft.site/home`) **e uma LP de imobiliário**; o **Meta anuncia só busca e apreensão**. Páginas `jurisoft` e `imobiliario` e área `imobiliario` criadas, as duas páginas ligadas ao Google. | Informado pelo cliente. Com cada plataforma em páginas diferentes, a página resolve a plataforma do lead. |
+| **Frases de origem do WhatsApp editáveis** em Configurações (tabela `frases_origem`), comparadas sem acento e sem diferença de maiúsculas; a mais longa que aparecer vence. | As páginas novas ficam fora do repositório do site, então o sistema não conhece a frase delas. O cliente cadastra sozinho a frase de cada página, inclusive das futuras. |
+| **Opções e frases iniciais versionadas** (`versao_dados_iniciais`). | Permite acrescentar opções novas a um banco que já está em uso sem desfazer o que foi renomeado ou desativado. |
+
 ## Pontos já levantados para as próximas etapas
+
+- **Frases do Jurisoft e da LP de imobiliário: pendentes.** Não foi possível abrir o site do
+  Jurisoft a partir do ambiente de desenvolvimento (o domínio não respondeu), e a LP de
+  imobiliário não está no repositório do site. Até a frase de cada uma ser cadastrada, os leads
+  delas entram sem página e sem plataforma, e ficam fora do CAC.
 
 - **Se Google e Meta passarem a anunciar a mesma página**, a frase do WhatsApp não distingue
   as duas. Opções: (a) um código curto na mensagem, que **altera a frase exata escrita pelo

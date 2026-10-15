@@ -123,10 +123,14 @@ Pronto. A tela de primeiro acesso deixa de existir assim que a sua conta é cria
    *lista*, com as opções Carro, Moto e Caminhão, marcando "Mostrar na lista de leads". O campo
    aparece no cadastro, vira coluna e filtro na lista de leads, e um recorte em Métricas. A
    Naia passa a poder preenchê-lo pela API com o código mostrado na tela (`tipo_de_veiculo`).
-4. **Qual plataforma anuncia cada página:** busca e apreensão já vem com **Meta Ads**. Marque a
-   página da campanha do Google com **Google Ads**. Assim, o lead que chega pela frase daquela
+4. **Qual plataforma anuncia cada página:** já vem preenchido. Busca e apreensão é **Meta Ads**;
+   o site Jurisoft e a LP de imobiliário são **Google Ads**. O lead que chega pela frase de uma
    página já entra com a plataforma certa. Se um dia duas plataformas anunciarem a mesma página,
    deixe essa página em "Não se sabe".
+5. **Frases de origem do WhatsApp:** cada página manda uma frase pronta no WhatsApp, e é por ela
+   que o sistema sabe de onde o lead veio. As frases das suas landing pages já estão cadastradas.
+   **Cadastre a frase do botão de WhatsApp do site Jurisoft e a da LP de imobiliário**, escolhendo
+   a página e a área de cada uma. Basta um trecho que só exista naquela frase.
 
 ## Como testar as métricas
 
