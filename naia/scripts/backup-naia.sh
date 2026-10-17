@@ -74,13 +74,16 @@ echo
 echo "=================================================="
 echo "BACKUP: $OUT ($(du -h "$OUT" | cut -f1))"
 echo "conferencia do que entrou:"
+# le o indice do pacote uma vez so (cada leitura descompacta o arquivo inteiro)
+LIST=$(mktemp); tar tzf "$OUT" > "$LIST" 2>/dev/null
 for p in SOUL.md AGENTS.md config.yaml .env auth.json state.db memories training context skills plugins cron sessions; do
-  if tar tzf "$OUT" ".hermes/$p" >/dev/null 2>&1; then
+  if grep -qxE "\.hermes/$p/?" "$LIST"; then
     echo "  OK      $p"
   else
     echo "  ausente $p"
   fi
 done
+rm -f "$LIST"
 echo
 echo "Para guardar fora da VPS, no terminal do SEU computador:"
 echo "  scp root@IP_DA_VPS:$OUT ."
