@@ -123,3 +123,15 @@ Correção, feita editando `/root/.hermes/.env` na VPS (`nano /root/.hermes/.env
 O `.env` não tem backup automático. Depois de mexer nele, tire um snapshot da VPS no painel da Hostinger.
 
 Para ter duas Naias de verdade, cada uma precisa de `HERMES_HOME` e unidade systemd próprios.
+
+## Instalador "plano B" (hermes-instalacao-plano-b.zip, analisado em 17/10/2026)
+
+Não serve para atualizar a Naia:
+
+- O pacote é o Hermes `v2026.5.29`, commit `e71a2bd`, **a mesma versão que já roda na VPS**. A versão mais recente do Hermes nesta data é a `v2026.9.24`.
+- Ele só autentica pela conta do ChatGPT (OAuth do Codex). Não configura o Claude.
+- Na VPS atual, a etapa `telegram` **recria o `.env` do zero**: ficam só o token do bot e o ID, e somem as chaves da Maton, do CRM de métricas e as outras. É o mesmo estrago de 27/09.
+- A etapa `gateway` reescreve a unidade systemd com uma versão mais simples, sem o `PATH` que inclui o Node em `/root/.hermes/node/bin`.
+- As etapas `hermes` e `oauth` seriam puladas, porque o Hermes e o login já estão lá.
+
+Atualizar de verdade é trocar a tag em `/usr/local/lib/hermes-agent` para uma versão nova, com backup e snapshot antes, mantendo `/root/.hermes` intacto.
