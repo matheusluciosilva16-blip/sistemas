@@ -2,9 +2,9 @@
 # ============================================================
 # backup-naia — copia COMPLETA da Naia antes de reinstalar
 #
-# Roda na VPS. Para o gateway por alguns segundos, empacota
-# /root/.hermes inteiro (memoria, treinamentos, historico,
-# skills, plugins, cron, .env e auth.json) e religa.
+# Roda na VPS, sem tirar a Naia do ar. Empacota /root/.hermes
+# inteiro (memoria, treinamentos, historico, skills, plugins,
+# cron, .env e auth.json).
 #
 # O pacote tem SEGREDOS (token do bot, chaves, OAuth).
 # Baixe para o seu computador e nunca coloque no repositorio.
@@ -17,31 +17,53 @@ set -uo pipefail
 SRC=/root/.hermes
 STAMP=$(date +%Y%m%d-%H%M%S)
 OUT=/root/naia-backup-$STAMP.tgz
-export XDG_RUNTIME_DIR=/run/user/0
 
 [ -d "$SRC" ] || { echo "FALHA: $SRC nao existe"; exit 1; }
 
-# para o gateway para o state.db (SQLite) nao ser copiado no meio de uma escrita
-echo "parando o gateway..."
-systemctl --user stop hermes-gateway.service
-
-# cache e logs ficam de fora: sao descartaveis e ocupam espaco
+# Sem parar a Naia: os bancos SQLite (state.db e outros .db) sao
+# copiados pela API de backup do proprio SQLite, que gera uma copia
+# consistente mesmo com ela rodando. O resto vai como esta.
+# Cache e fica de fora: e descartavel e ocupa espaco.
+echo "copiando (a Naia continua no ar)..."
 umask 077
-tar czf "$OUT" -C /root \
-  --exclude='.hermes/cache' \
-  --exclude='.hermes/image_cache' --exclude='.hermes/audio_cache' \
-  --exclude='.hermes/video_cache' --exclude='.hermes/document_cache' \
-  --exclude='.hermes/browser_screenshots' \
-  .hermes \
-  $( [ -d /root/.naia-backups ] && echo .naia-backups ) \
-  $( [ -d /root/.naia-sync-state ] && echo .naia-sync-state )
+python3 - "$OUT" <<'PY'
+import os, sqlite3, sys, tarfile, tempfile
+out = sys.argv[1]
+skip = {"cache", "image_cache", "audio_cache", "video_cache",
+        "document_cache", "browser_screenshots"}
+tmp = tempfile.mkdtemp()
+with tarfile.open(out, "w:gz") as tar:
+    for top in (".hermes", ".naia-backups", ".naia-sync-state"):
+        base = os.path.join("/root", top)
+        if not os.path.isdir(base):
+            continue
+        for root, dirs, files in os.walk(base):
+            rel = os.path.relpath(root, "/root")
+            if top == ".hermes" and root == base:
+                dirs[:] = [d for d in dirs if d not in skip]
+            tar.add(root, arcname=rel, recursive=False)
+            for f in files:
+                src = os.path.join(root, f)
+                arc = os.path.join(rel, f)
+                if f.endswith((".db-wal", ".db-shm", ".db-journal")):
+                    continue
+                if f.endswith(".db"):
+                    dst = os.path.join(tmp, f)
+                    try:
+                        a = sqlite3.connect(f"file:{src}?mode=ro", uri=True)
+                        b = sqlite3.connect(dst)
+                        a.backup(b); b.close(); a.close()
+                        tar.add(dst, arcname=arc)
+                        os.remove(dst)
+                        continue
+                    except sqlite3.Error as e:
+                        print(f"aviso: {arc} copiado direto ({e})")
+                try:
+                    tar.add(src, arcname=arc)
+                except OSError as e:
+                    print(f"aviso: {arc} ignorado ({e})")
+PY
 RC=$?
-
-echo "religando o gateway..."
-systemctl --user start hermes-gateway.service
-sleep 5
-echo "gateway: $(systemctl --user is-active hermes-gateway.service)"
-
 [ "$RC" = "0" ] || { echo "FALHA: tar retornou $RC"; exit 1; }
 chmod 600 "$OUT"
 
