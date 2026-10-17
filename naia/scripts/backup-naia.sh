@@ -9,8 +9,8 @@
 # O pacote tem SEGREDOS (token do bot, chaves, OAuth).
 # Baixe para o seu computador e nunca coloque no repositorio.
 #
-#   ssh root@VPS 'bash -s' < naia/scripts/backup-naia.sh
-#   scp root@VPS:/root/naia-backup-*.tgz .
+# No terminal da VPS (o naia-sync ja traz este arquivo):
+#   bash /root/naia-sync/naia/scripts/backup-naia.sh
 # ============================================================
 set -uo pipefail
 
@@ -60,6 +60,6 @@ for p in SOUL.md AGENTS.md config.yaml .env auth.json state.db memories training
   fi
 done
 echo
-echo "Agora baixe para o seu computador:"
-echo "  scp root@VPS:$OUT ."
+echo "Para guardar fora da VPS, no terminal do SEU computador:"
+echo "  scp root@IP_DA_VPS:$OUT ."
 echo "=================================================="
