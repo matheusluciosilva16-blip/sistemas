@@ -14,6 +14,8 @@ Configuração versionada da **Naia**, agente pessoal rodando em VPS e conversan
 | `hermes/.env.example` | Modelo do `.env` real, com placeholders |
 | `systemd/hermes-gateway.service` | Unidade systemd do gateway |
 | `scripts/instalar-naia.sh` | Instalação completa, etapas 1/2/3/5 |
+| `scripts/atualizar-hermes.sh` | Atualiza o programa do Hermes (hoje para `v2026.9.24`), guardando a versão anterior; `voltar` desfaz |
+| `scripts/conectar-claude.sh` | Instala o Claude Code, faz o login da assinatura e o plugin oficial, e testa, sem trocar o modelo |
 | `scripts/criar-agente.sh` | Cria um segundo agente na mesma VPS (perfil do Hermes + serviço próprio), sem tocar na Naia |
 | `scripts/backup-naia.sh` | Cópia completa de `/root/.hermes` antes de reinstalar ou migrar |
 | `treinamento/` | Documentos de treinamento para enviar a ela pelo Telegram |
@@ -62,7 +64,7 @@ A VPS busca este repositório **a cada 5 minutos** e aplica as mudanças sozinha
 scripts/naia-sync.sh  →  /usr/local/bin/naia-sync   (cron: */5 * * * *)
 ```
 
-**O que é sincronizado:** `config.yaml`, `SOUL.md`, `AGENTS.md` e a unidade systemd. O serviço só reinicia se algo realmente mudou.
+**O que é sincronizado:** `config.yaml`, `SOUL.md` e `AGENTS.md`. A unidade systemd não é mais sincronizada: desde o Hermes 0.21 o próprio gateway a reescreve a cada boot. O serviço só reinicia se algo realmente mudou.
 
 ### A proteção que importa
 
