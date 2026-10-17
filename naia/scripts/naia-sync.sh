@@ -61,18 +61,13 @@ for f in config.yaml SOUL.md AGENTS.md; do
   log "aplicado: $f"
 done
 
-# unidade systemd (raro mudar, sem conflito possivel)
-UNIT="$REPO/naia/systemd/hermes-gateway.service"
-DSTUNIT=/root/.config/systemd/user/hermes-gateway.service
-if [ -f "$UNIT" ] && ! cmp -s "$UNIT" "$DSTUNIT"; then
-  cp "$UNIT" "$DSTUNIT"; CHANGED=1; RELOAD=1
-  log "aplicado: hermes-gateway.service"
-fi
+# A unidade systemd NAO e mais sincronizada: desde o Hermes 0.21
+# o proprio gateway reescreve hermes-gateway.service a cada boot.
+# naia/systemd/ fica so como referencia.
 
 # --- 4. reiniciar so se algo mudou ---------------------------
 if [ "$CHANGED" = "1" ]; then
   export XDG_RUNTIME_DIR=/run/user/0
-  [ "${RELOAD:-0}" = "1" ] && systemctl --user daemon-reload
   systemctl --user restart hermes-gateway.service 2>>"$LOG"
   sleep 8
   ST=$(systemctl --user is-active hermes-gateway.service)

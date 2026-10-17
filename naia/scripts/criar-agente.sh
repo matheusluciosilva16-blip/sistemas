@@ -47,6 +47,11 @@ case "$MODELO" in chatgpt|claude) ;; *) fail "terceiro parametro: chatgpt ou cla
 [ -s "$NAIA/active_profile" ] && [ "$(cat "$NAIA/active_profile")" != "default" ] \
   && fail "existe um perfil ativo diferente do padrao ($NAIA/active_profile). Pare e me avise."
 command -v hermes >/dev/null || fail "comando hermes nao encontrado."
+# Do Hermes 0.21 em diante, um gateway por perfil nao e mais suportado:
+# o gateway da Naia atende os bots de todos os perfis. Este script foi
+# feito para a 0.15 e ainda nao foi adaptado.
+HV=$(hermes --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+' | head -1)
+case "$HV" in 0.1[0-9]|0.20|"") ;; *) fail "este script e para o Hermes 0.15; a VPS esta na $HV. Peca a adaptacao antes de usar.";; esac
 
 DONO=$(grep -E '^TELEGRAM_ALLOWED_USERS=' "$NAIA/.env" | head -1 | cut -d= -f2-)
 [[ "$DONO" =~ ^[0-9,]+$ ]] || fail "nao consegui ler o seu ID do Telegram no .env da Naia."
