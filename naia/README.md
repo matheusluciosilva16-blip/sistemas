@@ -14,6 +14,8 @@ Configuração versionada da **Naia**, agente pessoal rodando em VPS e conversan
 | `hermes/.env.example` | Modelo do `.env` real, com placeholders |
 | `systemd/hermes-gateway.service` | Unidade systemd do gateway |
 | `scripts/instalar-naia.sh` | Instalação completa, etapas 1/2/3/5 |
+| `scripts/backup-naia.sh` | Cópia completa de `/root/.hermes` antes de reinstalar ou migrar |
+| `treinamento/` | Documentos de treinamento para enviar a ela pelo Telegram |
 | `docs/runbook.md` | Diagnóstico dos problemas que já aconteceram |
 
 ## Ambiente
