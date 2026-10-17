@@ -25,7 +25,7 @@ Configuração versionada da **Naia**, agente pessoal rodando em VPS e conversan
 
 ```
 VPS       Hostinger, Ubuntu 22.04, 8 GB RAM, 2 vCPU
-Runtime   Hermes Agent v0.15.1, tag v2026.5.29 (pin intencional)
+Runtime   Hermes Agent v0.21.5, tag v2026.9.24 (pin intencional; atualizado em 17/10/2026)
 Modelo    gpt-5.6-terra via provider openai-codex (OAuth ChatGPT Plus)
 Canal     Telegram, polling
 Serviço   systemd user + loginctl enable-linger root
@@ -51,7 +51,7 @@ Faça isso antes de commitar: ela edita o próprio `SOUL.md` e `AGENTS.md` confo
 ## Regras que não devem ser quebradas
 
 1. **Nunca commitar `.env` ou `auth.json`.**
-2. **Não rodar `hermes update`.** O pin em `v2026.5.29` é proposital; a versão nova já removeu comandos que usamos.
+2. **Não rodar `hermes update`.** Ele segue a ponta do branch, sem tag, e migra o config de todos os perfis. Para trocar de versão, use `scripts/atualizar-hermes.sh`, que guarda a anterior e desfaz com `voltar`.
 3. **Instalar sempre desacoplado do SSH** (`setsid nohup ... &`). Preso à sessão, o processo morre de SIGHUP e deixa o ambiente Python incompleto.
 4. **Nunca rodar `hermes profile use`.** Com outro agente na VPS, esse comando faz o serviço da Naia passar a atender o perfil escolhido. Para o outro agente, use sempre `hermes -p <nome> ...`.
 5. **Snapshot da VPS antes de qualquer atualização.** A configuração já foi perdida uma vez com o cancelamento de uma VPS.
