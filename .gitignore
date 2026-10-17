@@ -25,3 +25,8 @@ logs/
 # Sistema
 Thumbs.db
 .DS_Store
+
+# Projeto metricas (Cloudflare Workers)
+node_modules/
+.wrangler/
+.dev.vars
