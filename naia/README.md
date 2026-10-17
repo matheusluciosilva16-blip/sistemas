@@ -14,6 +14,7 @@ Configuração versionada da **Naia**, agente pessoal rodando em VPS e conversan
 | `hermes/.env.example` | Modelo do `.env` real, com placeholders |
 | `systemd/hermes-gateway.service` | Unidade systemd do gateway |
 | `scripts/instalar-naia.sh` | Instalação completa, etapas 1/2/3/5 |
+| `scripts/criar-agente.sh` | Cria um segundo agente na mesma VPS (perfil do Hermes + serviço próprio), sem tocar na Naia |
 | `scripts/backup-naia.sh` | Cópia completa de `/root/.hermes` antes de reinstalar ou migrar |
 | `treinamento/` | Documentos de treinamento para enviar a ela pelo Telegram |
 | `docs/runbook.md` | Diagnóstico dos problemas que já aconteceram |
@@ -50,7 +51,8 @@ Faça isso antes de commitar: ela edita o próprio `SOUL.md` e `AGENTS.md` confo
 1. **Nunca commitar `.env` ou `auth.json`.**
 2. **Não rodar `hermes update`.** O pin em `v2026.5.29` é proposital; a versão nova já removeu comandos que usamos.
 3. **Instalar sempre desacoplado do SSH** (`setsid nohup ... &`). Preso à sessão, o processo morre de SIGHUP e deixa o ambiente Python incompleto.
-4. **Snapshot da VPS antes de qualquer atualização.** A configuração já foi perdida uma vez com o cancelamento de uma VPS.
+4. **Nunca rodar `hermes profile use`.** Com outro agente na VPS, esse comando faz o serviço da Naia passar a atender o perfil escolhido. Para o outro agente, use sempre `hermes -p <nome> ...`.
+5. **Snapshot da VPS antes de qualquer atualização.** A configuração já foi perdida uma vez com o cancelamento de uma VPS.
 
 ## Sincronização automática
 
