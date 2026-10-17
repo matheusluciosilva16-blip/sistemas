@@ -15,6 +15,7 @@ Configuração versionada da **Naia**, agente pessoal rodando em VPS e conversan
 | `systemd/hermes-gateway.service` | Unidade systemd do gateway |
 | `scripts/instalar-naia.sh` | Instalação completa, etapas 1/2/3/5 |
 | `scripts/atualizar-hermes.sh` | Atualiza o programa do Hermes (hoje para `v2026.9.24`), guardando a versão anterior; `voltar` desfaz |
+| `scripts/aplicar-config.sh` | Mostra a diferença e faz o `config.yaml` do repositório vencer um conflito do naia-sync |
 | `scripts/conectar-claude.sh` | Instala o Claude Code, faz o login da assinatura e o plugin oficial, e testa, sem trocar o modelo |
 | `scripts/criar-agente.sh` | Cria um segundo agente na mesma VPS (perfil do Hermes + serviço próprio), sem tocar na Naia |
 | `scripts/backup-naia.sh` | Cópia completa de `/root/.hermes` antes de reinstalar ou migrar |
@@ -26,7 +27,8 @@ Configuração versionada da **Naia**, agente pessoal rodando em VPS e conversan
 ```
 VPS       Hostinger, Ubuntu 22.04, 8 GB RAM, 2 vCPU
 Runtime   Hermes Agent v0.21.5, tag v2026.9.24 (pin intencional; atualizado em 17/10/2026)
-Modelo    gpt-5.6-terra via provider openai-codex (OAuth ChatGPT Plus)
+Modelo    Claude Sonnet 5.5 pela assinatura Max (plugin claude-subscription-directsdk);
+          reserva: gpt-5.6-terra via openai-codex (OAuth ChatGPT Plus)
 Canal     Telegram, polling
 Serviço   systemd user + loginctl enable-linger root
 ```

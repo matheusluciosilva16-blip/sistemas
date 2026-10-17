@@ -1,9 +1,12 @@
 model:
-  default: gpt-5.6-terra
-  provider: openai-codex
-  base_url: https://chatgpt.com/backend-api/codex
-providers: {}
-fallback_providers: []
+  default: sonnet
+  provider: claude-subscription-directsdk-experimental
+providers:
+  claude-subscription-directsdk-experimental:
+    stale_timeout_seconds: 900
+fallback_providers:
+- provider: openai-codex
+  model: gpt-5.6-terra
 credential_pool_strategies: {}
 toolsets:
 - hermes-cli
@@ -138,6 +141,7 @@ tool_loop_guardrails:
 compression:
   enabled: true
   threshold: 0.25
+  threshold_tokens: 100000
   target_ratio: 0.2
   protect_last_n: 20
   hygiene_hard_message_limit: 400
@@ -569,3 +573,6 @@ platform_toolsets:
   google_chat:
   - hermes-google_chat
 mcp_servers: {}
+plugins:
+  enabled:
+  - claude-subscription-directsdk-experimental
