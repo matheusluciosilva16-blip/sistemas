@@ -96,6 +96,8 @@ O endpoint `https://console.anthropic.com/v1/oauth/token` não existe mais. O He
 
 Alternativa sancionada: chave de API da Anthropic, com teto de gasto.
 
+**Atualização (17/10/2026):** a Anthropic agora permite usar a assinatura do Claude em apps de terceiros pelo Agent SDK. A Central de Ajuda (artigo 15036540, atualizado em 07/10/2026) diz que o Agent SDK, o `claude -p` e apps de terceiros podem usar os limites da assinatura. No Hermes, o caminho para isso é o plugin oficial e experimental "Claude Subscription DirectSDK" (`hermes plugins install`, publicado em 20/09/2026, issue #25267), que usa o `claude` instalado e logado na VPS. Ele exige um Hermes mais novo que o `v2026.5.29`. O login OAuth embutido no núcleo do Hermes, que se apresenta como Claude Code, continua não sendo o caminho a usar.
+
 ## Onde olhar primeiro
 
 ```bash
