@@ -77,7 +77,7 @@ Se a imagem estiver na pasta certa e mesmo assim não chegar, o log mostra `imag
 
 ## Armadilhas da instalação
 
-- **`hermes login` não existe.** O comando é `hermes auth add <provider> --type oauth --no-browser --manual-paste`.
+- **`hermes login` não existe.** O comando é `hermes auth add <provider> --type oauth --no-browser`. Na 0.15 havia também `--manual-paste`, que a 0.21 removeu.
 - **`setup-hermes.sh` retorna erro mesmo dando certo.** Valide pela existência de `venv/bin/hermes`, nunca pelo código de saída.
 - **`auth.lock` órfão** em `/root/.hermes/` bloqueia nova autenticação. Apague antes de retentar.
 - **A saída do `hermes auth` só aparece com pty real.** Rode dentro de `screen`; com pipe ou redirect o Python bufferiza e nada aparece até o processo morrer. Para ler: `screen -S hauth -X hardcopy -h /tmp/scr.txt`. Para guardar o erro mesmo se a sessão morrer: `screen -dmS nome -L -Logfile /tmp/x.log`.
@@ -137,3 +137,15 @@ Não serve para atualizar a Naia:
 - As etapas `hermes` e `oauth` seriam puladas, porque o Hermes e o login já estão lá.
 
 Atualizar de verdade é trocar a tag em `/usr/local/lib/hermes-agent` para uma versão nova, com backup e snapshot antes, mantendo `/root/.hermes` intacto.
+
+## Atualização para a 0.21.5 (17/10/2026)
+
+Feita com `scripts/atualizar-hermes.sh`: de `v2026.5.29` para `v2026.9.24`, sem tocar em `/root/.hermes`. A versão anterior ficou em `/root/.hermes-pre-update` (instalação, `config.yaml`, `state.db` e unidade systemd). Para voltar: `bash /root/naia-sync/naia/scripts/atualizar-hermes.sh voltar`.
+
+O que mudou na 0.21 e afeta a Naia:
+
+- **Multiplexação de perfis:** o gateway padrão tenta atender os bots de todos os perfis. As seis subagentes ganharam o arquivo `gateway.parked` e continuam só como subagentes. Um perfil novo **sem** esse arquivo e com bot próprio passa a ser atendido pelo gateway da Naia.
+- **Unidade systemd:** o gateway reescreve `hermes-gateway.service` a cada boot (sem `--replace`, com `HERMES_SUPERVISED_CHILD=1`). O naia-sync deixou de sincronizá-la.
+- **`state.db`:** migrado do esquema 13 para o 30. A volta usa a cópia guardada; as conversas feitas depois da atualização se perdem na volta.
+- **Compressão:** em modelos com janela abaixo de 512 mil tokens, `compression.threshold` tem piso de 0.75. Existe `compression.threshold_tokens`, um teto absoluto (padrão 256 mil).
+- **Envio de arquivos:** `/root` continua bloqueado, mas a pasta do próprio usuário do gateway passou a ser liberada, exceto `.ssh`, `.env`, `auth.json`, `config.yaml`, `sessions/` e `state.db`. A regra do Documento 09 continua valendo.
