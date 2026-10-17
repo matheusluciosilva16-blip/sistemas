@@ -75,7 +75,8 @@ echo
 echo "Isto vai atualizar o Hermes de $ATUAL para $TAG_NOVA."
 echo "Confirme que o snapshot da VPS esta pronto no painel da Hostinger."
 read -rp "Digite SIM para continuar: " R
-[ "$R" = SIM ] || fail "cancelado. Nada foi alterado."
+R=$(printf '%s' "$R" | tr -d '[:space:]' | tr '[:lower:]' '[:upper:]')
+[ "$R" = SIM ] || fail "cancelado (a resposta precisa ser SIM). Nada foi alterado."
 
 # --- 1. baixar a versao nova antes de desligar ---------------
 git config --global --add safe.directory "$DIR" >/dev/null 2>&1 || true
