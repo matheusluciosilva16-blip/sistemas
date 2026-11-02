@@ -1,10 +1,12 @@
 model:
-  default: sonnet
-  provider: claude-subscription-directsdk-experimental
+  default: claude-sonnet-5-5
+  provider: anthropic
 providers:
   claude-subscription-directsdk-experimental:
     stale_timeout_seconds: 900
 fallback_providers:
+- provider: claude-subscription-directsdk-experimental
+  model: sonnet
 - provider: openai-codex
   model: gpt-5.6-terra
 credential_pool_strategies: {}
@@ -576,3 +578,5 @@ mcp_servers: {}
 plugins:
   enabled:
   - claude-subscription-directsdk-experimental
+auth:
+  adopt_external_logins: false

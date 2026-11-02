@@ -28,8 +28,9 @@ Configuração versionada da **Naia**, agente pessoal rodando em VPS e conversan
 ```
 VPS       Hostinger, Ubuntu 22.04, 8 GB RAM, 2 vCPU
 Runtime   Hermes Agent v0.21.5, tag v2026.9.24 (pin intencional; atualizado em 17/10/2026)
-Modelo    Claude Sonnet 5.5 pela assinatura Max (plugin claude-subscription-directsdk);
-          reserva: gpt-5.6-terra via openai-codex (OAuth ChatGPT Plus)
+Modelo    Claude Sonnet 5.5 pela chave de API (credito mensal do Max, US$ 100);
+          1a reserva: assinatura Max (plugin claude-subscription-directsdk);
+          2a reserva: gpt-5.6-terra via openai-codex (OAuth ChatGPT Plus)
 Canal     Telegram, polling
 Serviço   systemd user + loginctl enable-linger root
 ```
