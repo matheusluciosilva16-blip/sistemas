@@ -56,9 +56,9 @@ assert not f("sk-ant-usr-x") and not f("sk-ant-api03-x") and f("sk-ant-oat01-x")
 PY
 ok "o Hermes agora trata chaves sk-ant-usr como chave de API"
 
-grep -q '^ANTHROPIC_API_KEY=' /root/.hermes/.env || { echo "Nenhuma chave no .env ainda. Rode o conectar-chave-anthropic.sh."; exit 0; }
+grep -qE '^(NAIA_ANTHROPIC_KEY|ANTHROPIC_API_KEY)=' /root/.hermes/.env || { echo "Nenhuma chave no .env ainda. Rode o conectar-chave-anthropic.sh."; exit 0; }
 echo "testando a chave guardada (a Naia continua no modelo atual)..."
-RESP=$(timeout 180 hermes --provider anthropic -m claude-sonnet-5-5 -z "Responda apenas: OK" 2>&1 | tail -5)
+RESP=$(timeout 180 hermes --provider custom:anthropic-chave -m claude-sonnet-5-5 -z "Responda apenas: OK" 2>&1 | tail -5)
 echo "$RESP"
 echo "$RESP" | grep -q "OK" || fail "o teste com a chave falhou."
 echo

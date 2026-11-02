@@ -1,7 +1,13 @@
 model:
   default: claude-sonnet-5-5
-  provider: anthropic
+  provider: custom:anthropic-chave
 providers:
+  # chave de API em NAIA_ANTHROPIC_KEY (nao ANTHROPIC_API_KEY): o plugin da
+  # assinatura se recusa a rodar se ANTHROPIC_API_KEY estiver no ambiente
+  anthropic-chave:
+    api: https://api.anthropic.com
+    key_env: NAIA_ANTHROPIC_KEY
+    transport: anthropic_messages
   claude-subscription-directsdk-experimental:
     stale_timeout_seconds: 900
 fallback_providers:
