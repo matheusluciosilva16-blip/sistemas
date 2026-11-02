@@ -166,3 +166,11 @@ No Hermes 0.21, cada agente é um perfil em `/root/.hermes/profiles/<nome>` aten
 - **Desligar um agente sem afetar a Naia:** `hermes -p <nome> gateway stop`, que cria `gateway.parked`.
 - **Nunca** `hermes profile use`, `hermes -p <nome> gateway install/start` nem `gateway.standalone`.
 - Os arquivos dos perfis **não** são sincronizados pelo naia-sync. `naia/donna/SOUL.md` é a referência.
+
+## "OAuth provider refuses conflicting native auth/backend overrides: ANTHROPIC_API_KEY" (02/11/2026)
+
+O plugin da assinatura (`claude-subscription-directsdk`) se recusa a rodar quando `ANTHROPIC_API_KEY` está no ambiente (`directsdk.py:790-793`). O Hermes carrega o `.env` no ambiente, então, com a chave guardada com esse nome, a reserva pela assinatura sempre falhava.
+
+Correção (`scripts/separar-chave-anthropic.sh`): a chave passa a se chamar `NAIA_ANTHROPIC_KEY`, e o modelo principal usa o provedor nomeado `anthropic-chave` (`api: https://api.anthropic.com`, `key_env: NAIA_ANTHROPIC_KEY`, `transport: anthropic_messages`). **Nunca** grave `ANTHROPIC_API_KEY` no `.env` de um agente que tenha a assinatura como reserva.
+
+Na mesma ocasião apareceu "signature rejected": numa conversa iniciada com uma fonte, o histórico com o raciocínio assinado não é aceito pela outra. Basta começar uma conversa nova com `/new`.

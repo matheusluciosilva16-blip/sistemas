@@ -49,8 +49,11 @@ cp -a "$ENV" "$ENV.antes-anthropic"
 CHAVE="$CHAVE" python3 - "$ENV" <<'PY'
 import os, sys
 p = sys.argv[1]
-linhas = [l for l in open(p).read().splitlines() if not l.startswith("ANTHROPIC_API_KEY=")]
-linhas.append("ANTHROPIC_API_KEY=" + os.environ["CHAVE"])
+# NAIA_ANTHROPIC_KEY, e nao ANTHROPIC_API_KEY: com ANTHROPIC_API_KEY no ambiente
+# o plugin da assinatura se recusa a rodar (ver separar-chave-anthropic.sh)
+linhas = [l for l in open(p).read().splitlines()
+          if not l.startswith(("ANTHROPIC_API_KEY=", "NAIA_ANTHROPIC_KEY="))]
+linhas.append("NAIA_ANTHROPIC_KEY=" + os.environ["CHAVE"])
 open(p, "w").write("\n".join(linhas) + "\n")
 PY
 chmod 600 "$ENV"
@@ -61,7 +64,7 @@ ok "chave guardada em $ENV (copia do anterior em $ENV.antes-anthropic)"
 # chaves sk-ant-usr/svc precisam da correcao #133856 no Hermes 0.21.5
 bash "$(dirname "$0")/corrigir-chave-console.sh" >/dev/null 2>&1 || true
 echo "testando a chave pelo Hermes (a Naia continua no modelo atual)..."
-RESP=$(timeout 180 hermes --provider anthropic -m claude-sonnet-5-5 -z "Responda apenas: OK" 2>&1 | tail -5)
+RESP=$(timeout 180 hermes --provider custom:anthropic-chave -m claude-sonnet-5-5 -z "Responda apenas: OK" 2>&1 | tail -5)
 echo "$RESP"
 echo "$RESP" | grep -q "OK" || fail "o Hermes nao conseguiu usar a chave. A Naia nao foi alterada."
 
