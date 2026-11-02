@@ -22,11 +22,19 @@ echo "Antes de seguir, confira em console.anthropic.com > Billing que ha um limi
 echo "de gasto mensal definido, para a chave nunca passar do que voce quer gastar."
 # ate 3 tentativas; mostra so o comeco do que foi colado, para conferir sem expor a chave
 for TENT in 1 2 3; do
-  read -rsp "Cole a chave de API da Anthropic (sk-ant-...) e aperte Enter (nada aparece na tela): " CHAVE; echo
+  read -rsp "Cole a chave de API da Anthropic (sk-ant-api...) e aperte Enter (nada aparece na tela): " CHAVE; echo
   CHAVE=$(printf '%s' "$CHAVE" | tr -d '[:space:]')
-  [[ "$CHAVE" =~ ^sk-ant- ]] && break
-  echo "  Isso nao e uma chave: o que chegou comeca com \"${CHAVE:0:7}\" e tem ${#CHAVE} caracteres."
-  echo "  Uma chave comeca com \"sk-ant-\" e tem uns 100 caracteres. Copie a chave de novo e cole."
+  [[ "$CHAVE" =~ ^sk-ant-api ]] && break
+  if [[ "$CHAVE" =~ ^sk-ant- ]]; then
+    # o prefixo (ate o 2o hifen depois de sk-ant) identifica o TIPO da chave e nao e segredo
+    TIPO=$(printf '%s' "$CHAVE" | cut -d- -f1-3)
+    echo "  Essa chave e do tipo \"$TIPO\", e nao uma chave de API comum (\"sk-ant-api...\")."
+    echo "  O Hermes trata chaves assim como login do Claude Code, e o credito de API nao cobre"
+    echo "  esse uso. Crie a chave em Chaves e acesso > Chaves de API e cole de novo."
+  else
+    echo "  Isso nao e uma chave: o que chegou comeca com \"${CHAVE:0:6}\" e tem ${#CHAVE} caracteres."
+    echo "  Uma chave de API comeca com \"sk-ant-api\" e tem uns 100 caracteres. Copie de novo e cole."
+  fi
   CHAVE=""
 done
 [ -n "$CHAVE" ] || fail "nenhuma chave valida depois de 3 tentativas. Nada foi alterado."
