@@ -556,6 +556,7 @@ platform_toolsets:
   - hermes-cli
   telegram:
   - hermes-telegram
+  - kanban
   discord:
   - hermes-discord
   whatsapp:

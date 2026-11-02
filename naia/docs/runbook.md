@@ -155,3 +155,14 @@ O que mudou na 0.21 e afeta a Naia:
 O Console passou a emitir chaves `sk-ant-usr-...`. O Hermes 0.21.5 só reconhece `sk-ant-api...` como chave de API: qualquer outro `sk-ant-` vira "login do Claude Code", com identidade e cabeçalhos do Claude Code. A Anthropic responde `HTTP 400: Your credit balance is too low`, porque o crédito mensal de API do plano Max não cobre uso do Claude Code.
 
 Correção: `scripts/corrigir-chave-console.sh` aplica na instalação a mudança oficial #133856, que já está no `main` do hermes-agent mas ainda não saiu numa versão. Ela troca uma linha de `agent/anthropic_credentials.py` e guarda o original em `.antes-133856`. Numa próxima atualização do Hermes, conferir se a versão nova já traz `"sk-ant-usr"` em `_is_oauth_token`; se não trouxer, rodar o script de novo.
+
+## Outros agentes na mesma VPS (Donna, 02/11/2026)
+
+No Hermes 0.21, cada agente é um perfil em `/root/.hermes/profiles/<nome>` atendido pelo mesmo `hermes-gateway.service` (multiplexação). Criar com `scripts/criar-agente.sh <nome>`.
+
+- **Comunicação:** quadro de tarefas (kanban) comum a todos os perfis, em `/root/.hermes/kanban.db`. A Naia é o responsável `default`, a Donna é `donna`. A tarefa roda como um processo separado com o perfil do responsável. Arquivos comuns ficam em `/root/compartilhado`.
+- **O que não serve:** `send_message` só fala pelo próprio bot. A ferramenta `message_agent` existe só em sessões "Bot Chat", não no Telegram. Bots do Telegram normalmente não recebem mensagens de outros bots num grupo.
+- **Chaves:** cada perfil lê só o próprio `.env`. A chave de API e o plugin da assinatura foram copiados para a Donna; o login OAuth (Codex, Claude Code) continua sendo o da raiz.
+- **Desligar um agente sem afetar a Naia:** `hermes -p <nome> gateway stop`, que cria `gateway.parked`.
+- **Nunca** `hermes profile use`, `hermes -p <nome> gateway install/start` nem `gateway.standalone`.
+- Os arquivos dos perfis **não** são sincronizados pelo naia-sync. `naia/donna/SOUL.md` é a referência.
