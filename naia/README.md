@@ -16,6 +16,7 @@ Configuração versionada da **Naia**, agente pessoal rodando em VPS e conversan
 | `scripts/instalar-naia.sh` | Instalação completa, etapas 1/2/3/5 |
 | `scripts/atualizar-hermes.sh` | Atualiza o programa do Hermes (hoje para `v2026.9.24`), guardando a versão anterior; `voltar` desfaz |
 | `scripts/aplicar-config.sh` | Mostra a diferença e faz o `config.yaml` do repositório vencer um conflito do naia-sync |
+| `scripts/corrigir-chave-console.sh` | Aplica no Hermes 0.21.5 a correção #133856 (chaves `sk-ant-usr` tratadas como chave de API) e testa |
 | `scripts/conectar-claude.sh` | Instala o Claude Code, faz o login da assinatura e o plugin oficial, e testa, sem trocar o modelo |
 | `scripts/criar-agente.sh` | Cria um segundo agente na mesma VPS (perfil do Hermes + serviço próprio), sem tocar na Naia |
 | `scripts/backup-naia.sh` | Cópia completa de `/root/.hermes` antes de reinstalar ou migrar |
