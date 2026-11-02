@@ -20,9 +20,16 @@ ok(){ echo "OK: $*"; }
 
 echo "Antes de seguir, confira em console.anthropic.com > Billing que ha um limite"
 echo "de gasto mensal definido, para a chave nunca passar do que voce quer gastar."
-read -rsp "Cole a chave de API da Anthropic (sk-ant-...) e aperte Enter (nada aparece na tela): " CHAVE; echo
-CHAVE=$(printf '%s' "$CHAVE" | tr -d '[:space:]')
-[[ "$CHAVE" =~ ^sk-ant- ]] || fail "isso nao parece uma chave da Anthropic (comeca com sk-ant-)."
+# ate 3 tentativas; mostra so o comeco do que foi colado, para conferir sem expor a chave
+for TENT in 1 2 3; do
+  read -rsp "Cole a chave de API da Anthropic (sk-ant-...) e aperte Enter (nada aparece na tela): " CHAVE; echo
+  CHAVE=$(printf '%s' "$CHAVE" | tr -d '[:space:]')
+  [[ "$CHAVE" =~ ^sk-ant- ]] && break
+  echo "  Isso nao e uma chave: o que chegou comeca com \"${CHAVE:0:7}\" e tem ${#CHAVE} caracteres."
+  echo "  Uma chave comeca com \"sk-ant-\" e tem uns 100 caracteres. Copie a chave de novo e cole."
+  CHAVE=""
+done
+[ -n "$CHAVE" ] || fail "nenhuma chave valida depois de 3 tentativas. Nada foi alterado."
 
 # confere a chave na Anthropic; a chave vai pelo stdin do curl, nunca pela linha de comando
 COD=$(printf 'header = "x-api-key: %s"\nheader = "anthropic-version: 2023-06-01"\nurl = "https://api.anthropic.com/v1/models"\n' "$CHAVE" \
