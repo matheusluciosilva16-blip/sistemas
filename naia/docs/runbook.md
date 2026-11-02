@@ -149,3 +149,9 @@ O que mudou na 0.21 e afeta a Naia:
 - **`state.db`:** migrado do esquema 13 para o 30. A volta usa a cópia guardada; as conversas feitas depois da atualização se perdem na volta.
 - **Compressão:** em modelos com janela abaixo de 512 mil tokens, `compression.threshold` tem piso de 0.75. Existe `compression.threshold_tokens`, um teto absoluto (padrão 256 mil).
 - **Envio de arquivos:** `/root` continua bloqueado, mas a pasta do próprio usuário do gateway passou a ser liberada, exceto `.ssh`, `.env`, `auth.json`, `config.yaml`, `sessions/` e `state.db`. A regra do Documento 09 continua valendo.
+
+## Chave do Console com "credit balance is too low" (02/11/2026)
+
+O Console passou a emitir chaves `sk-ant-usr-...`. O Hermes 0.21.5 só reconhece `sk-ant-api...` como chave de API: qualquer outro `sk-ant-` vira "login do Claude Code", com identidade e cabeçalhos do Claude Code. A Anthropic responde `HTTP 400: Your credit balance is too low`, porque o crédito mensal de API do plano Max não cobre uso do Claude Code.
+
+Correção: `scripts/corrigir-chave-console.sh` aplica na instalação a mudança oficial #133856, que já está no `main` do hermes-agent mas ainda não saiu numa versão. Ela troca uma linha de `agent/anthropic_credentials.py` e guarda o original em `.antes-133856`. Numa próxima atualização do Hermes, conferir se a versão nova já traz `"sk-ant-usr"` em `_is_oauth_token`; se não trouxer, rodar o script de novo.
