@@ -47,8 +47,8 @@ for L in "$NAIA/logs/gateway.log" "$DIR/logs/gateway.log" "$DIR/logs/errors.log"
 done
 
 echo
-echo "== 5. registros do servico (ultimas 2 h) sobre perfis e multiplexacao"
-journalctl --user -u hermes-gateway --since "2 hours ago" --no-pager 2>/dev/null \
+echo "== 5. registros do servico recentes sobre perfis e multiplexacao"
+journalctl --user -u hermes-gateway -n 20000 --no-pager 2>/dev/null \
   | grep -aiE "multiplex|standalone|serving|served|$NOME|profile|blocker|preflight" | tail -15 | cut -c1-220 | sed 's/^/  /'
 
 echo
