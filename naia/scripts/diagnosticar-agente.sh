@@ -15,12 +15,6 @@ export XDG_RUNTIME_DIR=/run/user/0 PATH="/root/.local/bin:$PATH"
 
 botid(){ grep -m1 '^TELEGRAM_BOT_TOKEN=' "$1" 2>/dev/null | cut -d= -f2- | cut -d: -f1; }
 
-echo "== 1. servico e perfis atendidos"
-systemctl --user is-active hermes-gateway.service
-hermes gateway status 2>&1 | grep -iE "serv|$NOME|park|dup|error|erro" | head -12
-[ -f "$DIR/gateway.parked" ] && echo "ATENCAO: $NOME esta estacionada (gateway.parked)"
-
-echo
 echo "== 2. numero do bot em cada agente (repetido = conflito)"
 for f in "$NAIA/.env" "$NAIA"/profiles/*/.env; do
   [ -f "$f" ] || continue
@@ -49,5 +43,17 @@ echo "== 4. ultimos registros sobre $NOME / Telegram"
 for L in "$NAIA/logs/gateway.log" "$DIR/logs/gateway.log" "$DIR/logs/errors.log"; do
   [ -f "$L" ] || continue
   echo "  -- $L"
-  grep -iE "$NOME|conflict|409|401|webhook|duplicate|telegram.*(error|fail)|unauthori" "$L" | tail -8 | cut -c1-220 | sed 's/^/    /'
+  grep -aiE "$NOME|conflict|409|401|webhook|duplicate|telegram.*(error|fail)|unauthori" "$L" | tail -5 | cut -c1-200 | sed 's/^/    /'
 done
+
+echo
+echo "== 5. registros do servico (ultimas 2 h) sobre perfis e multiplexacao"
+journalctl --user -u hermes-gateway --since "2 hours ago" --no-pager 2>/dev/null \
+  | grep -aiE "multiplex|standalone|serving|served|$NOME|profile|blocker|preflight" | tail -15 | cut -c1-220 | sed 's/^/  /'
+
+echo
+echo "== 6. servico e perfis atendidos (resumo)"
+systemctl --user is-active hermes-gateway.service
+hermes gateway status 2>&1 | grep -iE "serv|$NOME|park|dup|error|erro" | head -12
+[ -f "$DIR/gateway.parked" ] && echo "ATENCAO: $NOME esta estacionada (gateway.parked)"
+
