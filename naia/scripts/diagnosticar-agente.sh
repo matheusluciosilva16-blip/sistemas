@@ -57,3 +57,12 @@ systemctl --user is-active hermes-gateway.service
 hermes gateway status 2>&1 | grep -iE "serv|$NOME|park|dup|error|erro" | head -12
 [ -f "$DIR/gateway.parked" ] && echo "ATENCAO: $NOME esta estacionada (gateway.parked)"
 
+echo
+echo "== 7. por que o servico atende so a Naia (motivo dado pelo proprio Hermes)"
+# as mensagens do Hermes citam so nomes de perfis e de chaves, nunca valores
+cd /usr/local/lib/hermes-agent && HERMES_HOME=$NAIA venv/bin/python - <<'PY' 2>&1 | fold -w 160 | head -40
+from hermes_cli.gateway_multiplex_mode import implicit_multiplex_blocker
+m = implicit_multiplex_blocker()
+print("  " + (m or "nenhum bloqueio: o servico deveria atender todos os perfis"))
+PY
+
