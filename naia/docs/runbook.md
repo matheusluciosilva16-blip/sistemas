@@ -174,3 +174,15 @@ O plugin da assinatura (`claude-subscription-directsdk`) se recusa a rodar quand
 Correção (`scripts/separar-chave-anthropic.sh`): a chave passa a se chamar `NAIA_ANTHROPIC_KEY`, e o modelo principal usa o provedor nomeado `anthropic-chave` (`api: https://api.anthropic.com`, `key_env: NAIA_ANTHROPIC_KEY`, `transport: anthropic_messages`). **Nunca** grave `ANTHROPIC_API_KEY` no `.env` de um agente que tenha a assinatura como reserva.
 
 Na mesma ocasião apareceu "signature rejected": numa conversa iniciada com uma fonte, o histórico com o raciocínio assinado não é aceito pela outra. Basta começar uma conversa nova com `/new`.
+
+## Donna não responde: serviço atende só a Naia (03/11/2026)
+
+Sintoma: o bot da Donna recebe as mensagens (`pending_update_count` > 0), mas `hermes gateway status` mostra `Served profiles: default`.
+
+Causa: o Hermes 0.21 só atende vários perfis quando nenhuma credencial de bot se repete entre eles. A checagem é `implicit_multiplex_blocker()` → `build_migration_plan()` → `_check_duplicate_credentials`, e ela conta **também os perfis estacionados**. Os subagentes antigos (jonathancopy, julianaops, paulodev), criados como cópia da Naia, ainda guardavam o token do bot da Naia. Com isso o serviço ficava no modo "só a Naia".
+
+Correção: `scripts/corrigir-bots-repetidos.sh` remove o token repetido só dos perfis estacionados (o original fica em `.env.antes-bots`) e religa o serviço. Regra: **nenhum perfil pode ter o mesmo token de bot de outro**, nem estacionado.
+
+## "Title generation failed … send thinking: between_tools instead of disabled" (03/11/2026)
+
+As tarefas auxiliares (título da conversa, resumo de contexto) pedem o modelo "sem pensamento". O Hermes 0.21.5 manda `thinking: {type: disabled}`, que os modelos Claude 5 recusam (HTTP 400); a lista de modelos com pensamento obrigatório (`_MANDATORY_THINKING_CLAUDE_SUBSTRINGS`, `agent/anthropic_adapter.py`) só tinha `claude-fable`. `scripts/corrigir-pensamento.sh` acrescenta as famílias Claude 5 e guarda o original em `.antes-pensamento`. Depois de atualizar o Hermes, conferir se o erro voltou e rodar de novo.
