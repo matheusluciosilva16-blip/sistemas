@@ -22,7 +22,7 @@ ok(){ echo "OK: $*"; }
 [ "$(id -u)" = 0 ] || fail "rode como root."
 [ -f "$ARQ" ] || fail "nao achei $ARQ."
 
-if grep -q '"claude-sonnet-5"' "$ARQ"; then
+if grep -q 'ajuste local: familias Claude 5' "$ARQ"; then
   ok "o ajuste do pensamento ja estava aplicado"
 else
   cp -a "$ARQ" "$ARQ.antes-pensamento"
