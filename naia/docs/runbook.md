@@ -186,3 +186,7 @@ Correção: `scripts/corrigir-bots-repetidos.sh` remove o token repetido só dos
 ## "Title generation failed … send thinking: between_tools instead of disabled" (03/11/2026)
 
 As tarefas auxiliares (título da conversa, resumo de contexto) pedem o modelo "sem pensamento". O Hermes 0.21.5 manda `thinking: {type: disabled}`, que os modelos Claude 5 recusam (HTTP 400); a lista de modelos com pensamento obrigatório (`_MANDATORY_THINKING_CLAUDE_SUBSTRINGS`, `agent/anthropic_adapter.py`) só tinha `claude-fable`. `scripts/corrigir-pensamento.sh` acrescenta as famílias Claude 5 e guarda o original em `.antes-pensamento`. Depois de atualizar o Hermes, conferir se o erro voltou e rodar de novo.
+
+## "compression is currently blocked (structural_backoff)" (10/11/2026)
+
+O resumo automático só mexe em mensagens fora das últimas `protect_last_n`. Com 20 protegidas e poucas mensagens enormes (autos do Sync, documentos, a lista de ferramentas do Sync e do Meu Estagiário), a conversa passava de 100 mil tokens sem nada que pudesse ser resumido (`context_compressor.py`, "structural no-op"), e o aviso repetia a cada mensagem. Ajuste: `threshold_tokens: 160000` (o Sonnet 5.5 aceita 1 milhão) e `protect_last_n: 8`. Os perfis (Donna) têm config própria: `hermes -p donna config set compression.threshold_tokens 160000` e `... compression.protect_last_n 8`. Na hora do aviso, `/new` resolve.
