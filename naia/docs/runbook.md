@@ -165,7 +165,7 @@ No Hermes 0.21, cada agente é um perfil em `/root/.hermes/profiles/<nome>` aten
 - **Chaves:** cada perfil lê só o próprio `.env`. A chave de API e o plugin da assinatura foram copiados para a Donna; o login OAuth (Codex, Claude Code) continua sendo o da raiz.
 - **Desligar um agente sem afetar a Naia:** `hermes -p <nome> gateway stop`, que cria `gateway.parked`.
 - **Nunca** `hermes profile use`, `hermes -p <nome> gateway install/start` nem `gateway.standalone`.
-- Os arquivos dos perfis **não** são sincronizados pelo naia-sync. `naia/donna/SOUL.md` é a referência.
+- O naia-sync aplica `config.yaml` e `SOUL.md` na Donna (desde 10/11/2026, `scripts/ligar-donna-ao-repo.sh`). Outro agente novo precisa ser acrescentado em `scripts/naia-sync.sh`.
 
 ## "OAuth provider refuses conflicting native auth/backend overrides: ANTHROPIC_API_KEY" (02/11/2026)
 

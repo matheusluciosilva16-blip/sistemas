@@ -18,11 +18,12 @@ Configuração versionada da **Naia**, agente pessoal rodando em VPS e conversan
 | `scripts/aplicar-config.sh` | Mostra a diferença e faz o `config.yaml` do repositório vencer um conflito do naia-sync |
 | `scripts/separar-chave-anthropic.sh` | Renomeia a chave para `NAIA_ANTHROPIC_KEY`, para a reserva pela assinatura funcionar, e testa as duas fontes |
 | `scripts/corrigir-chave-console.sh` | Aplica no Hermes 0.21.5 a correção #133856 (chaves `sk-ant-usr` tratadas como chave de API) e testa |
+| `scripts/ligar-donna-ao-repo.sh` | Instala o naia-sync que também sincroniza a Donna (rodar uma vez) |
 | `scripts/corrigir-bots-repetidos.sh` | Tira o token do bot da Naia dos subagentes estacionados, para o serviço atender a Donna também, e religa |
 | `scripts/corrigir-pensamento.sh` | Corrige o erro do título das conversas no Sonnet 5.5 (thinking `disabled`) |
 | `scripts/conectar-claude.sh` | Instala o Claude Code, faz o login da assinatura e o plugin oficial, e testa, sem trocar o modelo |
 | `scripts/criar-agente.sh` | Cria outro agente ao lado da Naia (perfil do Hermes 0.21, atendido pelo mesmo serviço), como cópia dela, com quadro de tarefas compartilhado |
-| `donna/SOUL.md` | Personalidade da Donna, agente de operação jurídica (copiada para o perfil na criação; não sincroniza) |
+| `donna/SOUL.md` | Personalidade da Donna, agente de operação jurídica (sincronizada para `/root/.hermes/profiles/donna/`) |
 | `scripts/backup-naia.sh` | Cópia completa de `/root/.hermes` antes de reinstalar ou migrar |
 | `treinamento/` | Documentos de treinamento para enviar a ela pelo Telegram |
 | `docs/runbook.md` | Diagnóstico dos problemas que já aconteceram |
@@ -72,7 +73,7 @@ A VPS busca este repositório **a cada 5 minutos** e aplica as mudanças sozinha
 scripts/naia-sync.sh  →  /usr/local/bin/naia-sync   (cron: */5 * * * *)
 ```
 
-**O que é sincronizado:** `config.yaml`, `SOUL.md` e `AGENTS.md`. A unidade systemd não é mais sincronizada: desde o Hermes 0.21 o próprio gateway a reescreve a cada boot. O serviço só reinicia se algo realmente mudou.
+**O que é sincronizado:** `config.yaml`, `SOUL.md` e `AGENTS.md` da Naia, e `config.yaml` e `SOUL.md` da Donna. A Donna usa o mesmo `hermes/config.yaml` da Naia, a menos que exista `donna/config.yaml`. No `config.yaml`, o repositório manda em tudo menos em `mcp_servers` (conexões como Sync e Meu Estagiário, com as chaves), que fica sempre como está na VPS. O naia-sync se atualiza sozinho quando `scripts/naia-sync.sh` muda. A unidade systemd não é mais sincronizada: desde o Hermes 0.21 o próprio gateway a reescreve a cada boot. O serviço só reinicia se algo realmente mudou.
 
 ### A proteção que importa
 
