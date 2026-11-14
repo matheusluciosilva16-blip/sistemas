@@ -58,7 +58,7 @@ hermes gateway status 2>&1 | grep -iE "serv|$NOME|park|dup|error|erro" | head -1
 [ -f "$DIR/gateway.parked" ] && echo "ATENCAO: $NOME esta estacionada (gateway.parked)"
 
 echo
-echo "== 7. por que o servico atende so a Naia (motivo dado pelo proprio Hermes)"
+echo "== 7. bloqueio para atender varios agentes (motivo dado pelo proprio Hermes)"
 # as mensagens do Hermes citam so nomes de perfis e de chaves, nunca valores
 cd /usr/local/lib/hermes-agent && HERMES_HOME=$NAIA venv/bin/python - <<'PY' 2>&1 | fold -w 160 | head -40
 from hermes_cli.gateway_multiplex_mode import implicit_multiplex_blocker
@@ -66,3 +66,15 @@ m = implicit_multiplex_blocker()
 print("  " + (m or "nenhum bloqueio: o servico deveria atender todos os perfis"))
 PY
 
+
+echo
+echo "== 8. erros recentes de $NOME e ultimas sincronizacoes"
+for L in "$DIR/logs/errors.log" "$DIR/logs/agent.log" "$NAIA/logs/errors.log"; do
+  [ -f "$L" ] || continue
+  echo "  -- $L"
+  grep -aiE "error|erro|traceback|exception|failed|timeout" "$L" | tail -6 | cut -c1-200 | sed 's/^/    /'
+done
+journalctl --user -u hermes-gateway --since "-2h" --no-pager 2>/dev/null \
+  | grep -aiE "$NOME.*(error|fail|timeout|exception)|(error|fail).*$NOME" | tail -6 | cut -c1-200 | sed 's/^/  /'
+echo "  -- naia-sync"
+tail -8 "$NAIA/logs/naia-sync.log" 2>/dev/null | grep -v snapshot | cut -c1-160 | sed 's/^/    /'
