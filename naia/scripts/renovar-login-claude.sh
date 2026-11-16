@@ -22,14 +22,21 @@ command -v claude >/dev/null 2>&1 || fail "o Claude Code nao esta instalado. Rod
 
 echo "1) Vai aparecer um link. Abra no navegador, entre na conta do Claude Max,"
 echo "   autorize e cole o codigo aqui no terminal."
-echo "2) No fim aparece um token comecando com sk-ant-oat. Copie o token inteiro."
+echo "2) No fim aparece um token comecando com sk-ant-oat. Copie o token inteiro. Depois de colar, NAO aperte nada alem de Enter."
 echo
 read -rp "Aperte Enter para comecar..." _
 claude setup-token || fail "o setup-token nao terminou. Rode o script de novo."
 echo
 for TENT in 1 2 3; do
   read -rsp "Cole o token sk-ant-oat... e aperte Enter (nada aparece na tela): " TOK; echo
+  # o token aparece quebrado em 2 linhas no terminal; a copia pode vir com quebra
+  # de linha no meio, entao junta o que chegar colado logo em seguida
+  while read -rs -t 1 MAIS; do TOK="$TOK$MAIS"; done
   TOK=$(printf '%s' "$TOK" | tr -d '[:space:]')
+  if [[ "$TOK" =~ ^sk-ant-oat ]] && [ ${#TOK} -lt 90 ]; then
+    echo "  O token chegou incompleto (${#TOK} caracteres; o certo e uns 108). Copie de novo, inteiro."
+    TOK=""; continue
+  fi
   [[ "$TOK" =~ ^sk-ant-oat ]] && break
   echo "  Isso nao e o token: comeca com \"${TOK:0:6}\" e tem ${#TOK} caracteres. Copie de novo."
   TOK=""
@@ -58,10 +65,20 @@ systemctl --user restart hermes-gateway.service; sleep 20
 echo "servico: $(systemctl --user is-active hermes-gateway.service)"
 
 echo
-echo "== teste 1: chave de API (primeira opcao)"
-R1=$(timeout 180 hermes --provider custom:anthropic-chave -m claude-sonnet-5-5 -z "Responda apenas: OK" 2>&1 | tail -4)
-echo "$R1" | cut -c1-200
-echo "$R1" | grep -qi "credit balance" && echo ">> O CREDITO DA CHAVE DE API ACABOU (ver console.anthropic.com > Billing)."
+echo "== teste 1: chave de API (primeira opcao), direto na Anthropic"
+K=$(grep -m1 '^NAIA_ANTHROPIC_KEY=' "$NAIA/.env" | cut -d= -f2-)
+if [ -z "$K" ]; then
+  echo "  sem NAIA_ANTHROPIC_KEY no .env"
+else
+  R1=$(printf 'header = "x-api-key: %s"\nheader = "anthropic-version: 2023-06-01"\nheader = "content-type: application/json"\nurl = "https://api.anthropic.com/v1/messages"\n' "$K" \
+    | curl -sS --max-time 60 -K - -d '{"model":"claude-sonnet-5-5","max_tokens":20,"messages":[{"role":"user","content":"Responda apenas: OK"}]}')
+  unset K
+  if echo "$R1" | grep -q '"type":"message"'; then ok "chave de API funcionando"
+  else
+    echo "  a Anthropic respondeu: $(echo "$R1" | python3 -c 'import json,sys; d=json.load(sys.stdin); print(d.get("error",{}).get("message",d))' 2>/dev/null | cut -c1-200)"
+    echo "$R1" | grep -qi "credit balance" && echo "  >> O CREDITO DA CHAVE DE API ACABOU (console.anthropic.com > Billing)."
+  fi
+fi
 echo
 echo "== teste 2: assinatura do Claude (reserva)"
 R2=$(timeout 300 hermes --provider claude-subscription-directsdk-experimental -m sonnet -z "Responda apenas: OK" 2>&1 | tail -4)
