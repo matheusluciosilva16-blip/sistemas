@@ -18,6 +18,7 @@ Configuração versionada da **Naia**, agente pessoal rodando em VPS e conversan
 | `scripts/aplicar-config.sh` | Mostra a diferença e faz o `config.yaml` do repositório vencer um conflito do naia-sync |
 | `scripts/separar-chave-anthropic.sh` | Renomeia a chave para `NAIA_ANTHROPIC_KEY`, para a reserva pela assinatura funcionar, e testa as duas fontes |
 | `scripts/corrigir-chave-console.sh` | Aplica no Hermes 0.21.5 a correção #133856 (chaves `sk-ant-usr` tratadas como chave de API) e testa |
+| `scripts/renovar-login-claude.sh` | Reconecta a assinatura do Claude com token de 1 ano (`claude setup-token`) e testa chave e assinatura |
 | `scripts/ligar-donna-ao-repo.sh` | Instala o naia-sync que também sincroniza a Donna (rodar uma vez) |
 | `scripts/corrigir-bots-repetidos.sh` | Tira o token do bot da Naia dos subagentes estacionados, para o serviço atender a Donna também, e religa |
 | `scripts/corrigir-pensamento.sh` | Corrige o erro do título das conversas no Sonnet 5.5 (thinking `disabled`) |

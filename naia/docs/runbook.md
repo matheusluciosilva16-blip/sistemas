@@ -190,3 +190,7 @@ As tarefas auxiliares (título da conversa, resumo de contexto) pedem o modelo "
 ## "compression is currently blocked (structural_backoff)" (10/11/2026)
 
 O resumo automático só mexe em mensagens fora das últimas `protect_last_n`. Com 20 protegidas e poucas mensagens enormes (autos do Sync, documentos, a lista de ferramentas do Sync e do Meu Estagiário), a conversa passava de 100 mil tokens sem nada que pudesse ser resumido (`context_compressor.py`, "structural no-op"), e o aviso repetia a cada mensagem. Ajuste: `threshold_tokens: 160000` (o Sonnet 5.5 aceita 1 milhão) e `protect_last_n: 8`. Os perfis (Donna) têm config própria: `hermes -p donna config set compression.threshold_tokens 160000` e `... compression.protect_last_n 8`. Na hora do aviso, `/new` resolve.
+
+## "Claude Subscription DirectSDK rejected your sign-in … OAuth session expired" (16/11/2026)
+
+O login comum do Claude Code na VPS (`claude auth login`) expirou e não renovou, e a reserva pela assinatura parou. Esse erro só aparece quando a primeira opção (chave de API) falhou antes: conferir também o crédito da chave. Correção: `scripts/renovar-login-claude.sh` gera um token de 1 ano com `claude setup-token` e o guarda como `CLAUDE_CODE_OAUTH_TOKEN` no `.env` da Naia e dos agentes ativos (o plugin aceita essa variável). Depois testa a chave e a assinatura. Renovar antes de 1 ano.
